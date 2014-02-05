@@ -25,6 +25,8 @@ THE SOFTWARE.
 
 #include "reader.h"
 
+#include <string.h> /* strlen */
+
 MgAttribute* MgFindAttribute(
     MgElement*  pp,
     char const* id )

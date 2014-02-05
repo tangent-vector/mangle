@@ -22,6 +22,7 @@ THE SOFTWARE.
 #include "writer.h"
 
 #include <stdlib.h>
+#include <string.h> /* strlen */
 
 // MgWriter
 

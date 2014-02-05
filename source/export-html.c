@@ -342,12 +342,14 @@ void MgWriteDoc(
         "</body>\n");
 }
 
+#ifdef _MSC_VER
 char* stpcpy(char* dest, char const* src)
 {
     while( *dest++ = *src++ )
     {}
     return dest-1;
 }
+#endif
 
 void MgWriteDocFileToPath(
     MgContext*    context,

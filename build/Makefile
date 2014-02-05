@@ -1,4 +1,4 @@
 CC = cc
 
 mangle: ../source/*.c ../source/*.h
-	$(CC) -o $@ -g ../source/*.c
+	$(CC) -o $@ -g -I../include ../source/*.c
