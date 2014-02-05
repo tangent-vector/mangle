@@ -36,7 +36,7 @@ By default, Markdown code blocks are *not* written to any output code file:
 
     printf("This line won't be in the output\n");
 
-In order for code to be part of the output program, it must be part of a named *scrap*. A scrap definition is any code block where the first line of code start with `` << `` and ends with `` >>= ``:
+In order for code to be part of the output program, it must be part of a named *scrap*. A scrap definition is any code block where the first line of code starts with `` << `` and ends with `` >>= ``:
 
     <<simple-scrap>>=
     printf("Hello, World!\n");
@@ -51,7 +51,7 @@ A named scrap can be referenced by another scrap, to insert its definition in pl
     printf("***\n");
     <<simple-scrap>>
 
-The scrap `print-stuff` includes a reference to `simple-scrap`, simply by giving the scrap name between `` << `` and `` >> ``. This scrap also shows another feature: we can define a "pretty" name for a scrap, in addition to the internal identifier, but separating them with `|`. The identifier on the left is used when referring to the scrap within the literate program, but the Markdown text on the right will be used when representing the scrap in the formatted output.
+The scrap `print-stuff` includes a reference to `simple-scrap`, simply by giving the scrap name between `` << `` and `` >> ``. This scrap also shows another feature: we can define a "pretty" name for a scrap, in addition to the internal identifier, by separating them with `|`. The identifier on the left is used when referring to the scrap within the literate program, but the Markdown text on the right will be used when representing the scrap in the formatted output.
 
 ### Extending a Scrap Definition
 
@@ -127,4 +127,4 @@ As you can see, Mangle automatically inserts `#line` directives that link the ge
 
 ## License
 
-The code to Mangle is distributed under an MIT license (see LICENSE.txt).
+The code to Mangle is distributed under an MIT license (see the LICENSE file).
