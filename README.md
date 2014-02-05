@@ -43,7 +43,7 @@ In order for code to be part of the output program, it must be part of a named *
 
 The preceding example defines a scrap named `simple-scrap`, which includes one line of C code.
 
-### MgScrap References, and Formatted Names
+### Scrap References, and Formatted Names
 
 A named scrap can be referenced by another scrap, to insert its definition in place:
 
@@ -53,7 +53,7 @@ A named scrap can be referenced by another scrap, to insert its definition in pl
 
 The scrap `print-stuff` includes a reference to `simple-scrap`, simply by giving the scrap name between `` << `` and `` >> ``. This scrap also shows another feature: we can define a "pretty" name for a scrap, in addition to the internal identifier, but separating them with `|`. The identifier on the left is used when referring to the scrap within the literate program, but the Markdown text on the right will be used when representing the scrap in the formatted output.
 
-### Extending a MgScrap Definition
+### Extending a Scrap Definition
 
 A single scrap name may be defined at multiple places, and its text will be the concatenation of all these definitions. Thus we can extend the ``simple-scrap`` scrap as follows:
 
@@ -62,7 +62,7 @@ A single scrap name may be defined at multiple places, and its text will be the 
 
 Note that we can also add a "pretty" name to a previously-declared scrap (although only one definition site should include a pretty name). Note also that a scrap can be referenced before it is extended (or even before it it defined). A reference always includes the full text of the scrap (all definitions), regardless of the order of definitions.
 
-### MgScrap Kinds
+### Scrap Kinds
 
 When defining or extending a scrap, we can also apply a "kind" to it:
 
@@ -95,27 +95,29 @@ The expected output in this case looks like:
 ```
 
 #line 75 "README.md"
+
+#line 83 "README.md"
     #include <stdio.h>
 
 void main( int argc, char** argv )
 {
     
-#line 43 "README.md"
+#line 51 "README.md"
     printf("***\n");
 
-#line 34 "README.md"
+#line 42 "README.md"
     printf("Hello, World!\n");
 
-#line 53 "README.md"
+#line 61 "README.md"
     printf("It's-a Me!\n");
 
-#line 44 "README.md"
+#line 52 "README.md"
                     
 
-#line 62 "README.md"
+#line 70 "README.md"
     printf("***\n");
 
-#line 79 "README.md"
+#line 87 "README.md"
                        
     return 0;
 }
