@@ -30,7 +30,7 @@ Mangle then adds a few new pieces of syntax inspired by [noweb][] for defining a
 
   [noweb]:      http://www.cs.tufts.edu/~nr/noweb/                          "Noweb"
 
-### MgScrap Definitions
+### Scrap Definitions
 
 By default, Markdown code blocks are *not* written to any output code file:
 
