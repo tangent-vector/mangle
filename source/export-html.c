@@ -311,25 +311,80 @@ static void WriteToFile(
     fwrite(begin, 1, end-begin, file);
 }
 
+static void MgWriteElementText(
+    MgElement*  element,
+    MgWriter*   writer )
+{
+    // TODO: some elements need special handling here...
+    MgWriteString( writer, element->text );
+
+    MgElement* child = element->firstChild;
+    while( child )
+    {
+        MgWriteElementText( child, writer );
+        child = child->next;
+    }
+}
+
+static MgElement* MgFindTitleElement(
+    MgElement* firstElement )
+{
+    // only look along the top-level "spine" of the document
+    MgElement* element = firstElement;
+    MgElement* bestElement = MG_NULL;
+    for(; element; element = element->next)
+    {
+        switch(element->kind)
+        {
+        case kMgElementKind_Header1:
+        case kMgElementKind_Header2:
+        case kMgElementKind_Header3:
+        case kMgElementKind_Header4:
+        case kMgElementKind_Header5:
+        case kMgElementKind_Header6:
+            break;
+
+        default:
+            continue; // only consider headers
+        }
+
+        // here we rely on the fact that the header element
+        // kinds are defined to have ascending order in the enum...
+        if( !bestElement || bestElement->kind > element->kind )
+        {
+            bestElement = element;
+        }
+    }
+
+    return bestElement;
+}
+
 void MgWriteDoc(
     MgContext*        context,
     MgInputFile*      inputFile,
     MgWriter*         writer )
 {
     MgWriteCString(writer,
-        "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n"
-        "    \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n"
-        "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\">\n"
+        "<!DOCTYPE html>\n"
+        "<html>\n"
         "<head>\n"
-        "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />\n"
-        "    <title>Page Title</title>\n"
-//*
-        "<script src='http://use.edgefonts.net/open-sans:n3,i3,n4,i4,n6,i6,n7,i7,n8,i8.js'></script>"
-        "<script src='http://use.edgefonts.net/open-sans-condensed:n3,i3,n7.js'></script>"
-        "<script src='http://use.edgefonts.net/average:n4.js'></script>"
-        "<script src='http://use.edgefonts.net/source-code-pro.js'></script>"
-        "<link rel='stylesheet' type='text/css' href='test.css'>"
+        "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />\n");
+
+    // try to find a title to output
+    // TODO: support title coming from command line or config file
+    MgElement* titleElement = MgFindTitleElement(inputFile->firstElement);
+    if( titleElement )
+    {
+        MgWriteCString(writer, "<title>");
+        MgWriteElementText(titleElement, writer);
+        MgWriteCString(writer, "</title>");
+    }
+
+    // TODO: support loading of CSS and scripts based on config files
+/*
+        "<link rel='stylesheet' type='text/css' href='mangle.css'>"
 //*/
+    MgWriteCString(writer,
         "</head>\n"
         "<body>\n");
 
