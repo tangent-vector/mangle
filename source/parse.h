@@ -168,6 +168,16 @@ MgElement* MgParseBlockElements(
     MgLine*         endLines );
 
 /*
+Like `MgParseBlockElements`, but only handles meta-data elements, and
+not general Markdown document content.
+*/
+MgElement* MgParseMetaDataElements(
+    MgContext*      context,
+    MgInputFile*    inputFile,
+    MgLine*         beginLines,
+    MgLine*         endLines );
+
+/*
 Flags for parsing span-level elements in Markdown source.
 */
 enum

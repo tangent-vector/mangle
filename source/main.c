@@ -34,14 +34,16 @@ typedef struct OptionsT
     char const* executableName;
     char const* docOutputPath;
     char const* sourceOutputPath;
+    char const* metaDataFilePath;
 } Options;
 
 void InitializeOptions(
     Options*    options )
 {
     options->executableName     = "mangle";
-    options->docOutputPath      = "";
-    options->sourceOutputPath   = "";
+    options->docOutputPath      = 0;
+    options->sourceOutputPath   = 0;
+    options->metaDataFilePath   = 0;
 }
 
 int ParseOptions(
@@ -75,10 +77,25 @@ int ParseOptions(
                     // treat an `--` option as marking the end of the list
                     break;
                 }
+                else if( strcmp(option+2, "meta") == 0 )
+                {
+                    // meta-data file
+                    if( remaining != 0 )
+                    {
+                        options->metaDataFilePath = *readCursor++;
+                        --remaining;
+                        continue;
+                    }
+                    else
+                    {
+                        fprintf(stderr, "expected argument for option %s\n", option);
+                        return 0;
+                    }
+                }
                 else
                 {
                     fprintf(stderr, "unknown option: %s\n", option);
-                    exit(1);
+                    return 0;
                 }
             }
             else
@@ -87,7 +104,7 @@ int ParseOptions(
                 // they would be processed.
 
                 fprintf(stderr, "unknown option: %s\n", option);
-                exit(1);                
+                return 0;
             }
         }
 
@@ -134,6 +151,12 @@ int main(
     // read all of the input files into the context
     MgContext context;
     MgInitialize( &context );
+
+    //
+    if( options.metaDataFilePath )
+    {
+        MgAddMetaDataFile( &context, options.metaDataFilePath );
+    }
 
     for( int ii = 0; ii < argc; ++ii )
     {

@@ -326,6 +326,108 @@ static void MgWriteElementText(
     }
 }
 
+MgElement* MgFindMetaDataInFile(
+    MgInputFile*    file,
+    const char*     key )
+{
+    MgString keyString = MgTerminatedString(key);
+
+    MgElement* element = file->firstElement;
+    for(; element; element = element->next)
+    {
+        if( element->kind != kMgElementKind_MetaData )
+            continue;
+
+        MgAttribute* keyAttr = MgFindAttribute(element, "$key");
+        if( !keyAttr )
+            continue;
+
+        if( !MgStringsAreEqualNoCase(keyString, keyAttr->val) )
+            continue;
+
+        return element;
+    }
+
+    return MG_NULL;
+}
+
+
+
+MgElement* MgFindMetaData(
+    MgContext*      context,
+    MgInputFile*    inputFile,
+    const char*     key )
+{
+    MgElement* element = MG_NULL;
+
+    // look for file-specific meta-data
+    element = MgFindMetaDataInFile( inputFile, key );
+    if( element ) return element;
+
+    // look for generic meta-data
+    if( context->metaDataFile )
+    {
+        element = MgFindMetaDataInFile( context->metaDataFile, key );
+        if( element ) return element;        
+    }
+
+    return MG_NULL;
+}
+
+typedef void (*MgMetaDataFunc)(
+    MgElement*  metaData,
+    void*       userData );
+
+void MgForEachMetaDataInFile(
+    MgInputFile*    file,
+    const char*     key,
+    MgMetaDataFunc  func,
+    void*           userData )
+{
+    MgString keyString = MgTerminatedString(key);
+
+    MgElement* element = file->firstElement;
+    for(; element; element = element->next)
+    {
+        if( element->kind != kMgElementKind_MetaData )
+            continue;
+
+        MgAttribute* keyAttr = MgFindAttribute(element, "$key");
+        if( !keyAttr )
+            continue;
+
+        if( !MgStringsAreEqualNoCase(keyString, keyAttr->val) )
+            continue;
+
+        func( element, userData );
+    }
+}
+
+void MgForEachMetaData(
+    MgContext*      context,
+    MgInputFile*    file,
+    const char*     key,
+    MgMetaDataFunc  func,
+    void*           userData )
+{
+    // generic meta-data first
+    if( context->metaDataFile )
+        MgForEachMetaDataInFile( context->metaDataFile, key, func, userData );
+
+    // then file-specific meta-data
+    MgForEachMetaDataInFile( file, key, func, userData );
+}
+
+void MgCssMetaDataCallback(
+    MgElement*  cssElement,
+    void*       userData )
+{
+    MgWriter* writer = (MgWriter*) userData;
+    MgWriteCString(writer, "<link rel='stylesheet' type='text/css' href='");
+    MgWriteElementText(cssElement, writer);
+    MgWriteCString(writer, "'>\n");    
+}
+
 static MgElement* MgFindTitleElement(
     MgElement* firstElement )
 {
@@ -372,18 +474,19 @@ void MgWriteDoc(
 
     // try to find a title to output
     // TODO: support title coming from command line or config file
-    MgElement* titleElement = MgFindTitleElement(inputFile->firstElement);
+    MgElement* titleElement = MgFindMetaData(context, inputFile, "title");
+    if( !titleElement )
+        titleElement = MgFindTitleElement(inputFile->firstElement);
+    MgWriteCString(writer, "<title>");
     if( titleElement )
-    {
-        MgWriteCString(writer, "<title>");
         MgWriteElementText(titleElement, writer);
-        MgWriteCString(writer, "</title>");
-    }
+    MgWriteCString(writer, "</title>\n");
 
-    // TODO: support loading of CSS and scripts based on config files
-/*
-        "<link rel='stylesheet' type='text/css' href='mangle.css'>"
-//*/
+    // handle CSS meta-data
+    MgForEachMetaData(context, inputFile, "css", &MgCssMetaDataCallback, writer);
+
+    // TODO: add other kinds of meta-data support
+
     MgWriteCString(writer,
         "</head>\n"
         "<body>\n");

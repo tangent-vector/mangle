@@ -1509,10 +1509,67 @@ MgElement* ParseTable(
         firstRow );
 }
 
+MgElement* ParseMetaData(
+    MgContext*      context,
+    MgInputFile*    inputFile,
+    LineRange*      ioLineRange )
+{
+    MgLine* firstLine = GetLine( ioLineRange );
+    if( !firstLine )
+        return MG_NULL;
+
+    MgReader reader;
+    InitializeLineReader( &reader, firstLine );
+
+    // meta-data line can't start with whitespace
+    if( isspace(MgPeekChar(&reader)) )
+        return MG_NULL;
+
+    // read until a ':'
+    MgString key = MgFindMatchingString(&reader, ':', 1);
+    if( !key.end )
+        return MG_NULL;
+
+    MgString value = MgMakeString(reader.cursor, firstLine->text.end);
+    TrimTrailingSpace(value.begin, &value.end);
+    TrimLeadingSpace(&value.begin, value.end);
+
+    MgElement* firstChild = MgCreateLeafElement(kMgElementKind_Text, value);
+    MgElement* lastChild = firstChild;
+
+    for(;;)
+    {
+        MgLine* line = GetLine( ioLineRange );
+        if( !line )
+            break;
+
+        InitializeLineReader( &reader, line );
+        if( !isspace(MgPeekChar(&reader)) )
+        {
+            UnGetLine( ioLineRange, line );
+            break;
+        }
+
+        value = line->text;
+        TrimTrailingSpace(value.begin, &value.end);
+        TrimLeadingSpace(&value.begin, value.end);
+
+        MgElement* child = MgCreateLeafElement(kMgElementKind_Text, value);
+        lastChild->next = child;
+        lastChild = child;
+    }
+
+    MgElement* element = MgCreateParentElement(
+        kMgElementKind_MetaData,
+        firstChild );
+    MgAddAttribute(element, "$key", key);
+    return element;
+}
+
 MgElement* ReadElement(
-    MgContext*    context,
-    MgInputFile*  inputFile,
-    LineRange*  ioLineRange )
+    MgContext*      context,
+    MgInputFile*    inputFile,
+    LineRange*      ioLineRange )
 {
     // earlier code has skipped any empty lines,
     // so we know this line represents the start
@@ -1564,6 +1621,8 @@ MgElement* MgParseBlockElements(
     MgLine*         beginLines,
     MgLine*         endLines )
 {
+    // TODO: parse meta-data elements until no more matches
+
     MgElement* firstElement = MG_NULL;
     MgElement* lastElement  = MG_NULL;
 
@@ -1594,4 +1653,45 @@ MgElement* ReadElementsInRange(
         inputFile,
         lineRange.begin,
         lineRange.end );
+}
+
+MgElement* MgParseMetaDataElements(
+    MgContext*      context,
+    MgInputFile*    inputFile,
+    MgLine*         beginLines,
+    MgLine*         endLines )
+{
+    MgElement* firstElement = MG_NULL;
+    MgElement* lastElement  = MG_NULL;
+
+    LineRange lineRange = { beginLines, endLines };
+    for(;;)
+    {
+        SkipEmptyLines(&lineRange);
+        if( lineRange.begin == lineRange.end )
+            break;
+
+        LineRange savedLineRange = lineRange;
+        MgElement* element = ParseMetaData(context, inputFile, &lineRange);
+        if( !element )
+        {
+            fprintf(stderr, "bad metadata line\n");
+            // if we failed to parse meta-data, skip a line and keep trying
+            lineRange = savedLineRange;
+            ++lineRange.begin;            
+            continue;
+        }
+
+        if( lastElement )
+        {
+            lastElement->next = element;
+        }
+        else
+        {
+            firstElement = element;
+        }
+        lastElement = element;
+    }
+
+    return firstElement;    
 }

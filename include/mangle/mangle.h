@@ -119,6 +119,29 @@ MgInputFile* MgAddInputFilePath(
 #endif
 
 /*
+## Meta-Data ##
+
+The user can also specify a "meta-data" file that contains declarations that
+will apply to all input files. This can be used to specify things that will
+go into headers of the HTML output documents. The functions below return
+the meta-data content in an `MgInputFile` (this is convenient since we might
+allow meta-data declarations in the ordinary files too), but the file will
+not be added to the linked list of input documents.
+*/
+
+MgInputFile* MgAddMetaDataText(
+    MgContext*  context,
+    const char* path,
+    const char* textBegin,
+    const char* textEnd );
+
+#ifndef MANGLE_NO_STDIO
+MgInputFile* MgAddMetaDataFile(
+    MgContext*  context,
+    const char* path );
+#endif
+
+/*
 ## Output ##
 
 As input files are read, Mangle builds up a representation
@@ -313,6 +336,8 @@ struct MgContextT
 
     MgScrapNameGroup*   firstScrapNameGroup;    /* singly-linked list of scrap name groups */
     MgScrapNameGroup*   lastScrapNameGroup;
+
+    MgInputFile*        metaDataFile;
 };
 
 /*
@@ -346,6 +371,10 @@ typedef enum MgElementKindT
                                             children: scrap body
                                             $scrap attribute: MgScrap*
                                         */
+    kMgElementKind_MetaData,            /* meta-data declaration with
+                                            children: value
+                                            $key attribute: key
+                                        */
 
     /* span-level */
     kMgElementKind_Em,                  /* `<em>` */
@@ -356,11 +385,15 @@ typedef enum MgElementKindT
     kMgElementKind_GreaterThanEntity,   /* `&gt;` */
     kMgElementKind_AmpersandEntity,     /* `&amp;` */
     kMgElementKind_ReferenceLink,       /* `<a>` with
-                                            $referenceLink attribute: MgReferenceLink*
+                                            $referenceLink attribute:
+                                                MgReferenceLink*
                                         */
-    kMgElementKind_ScrapRef,            /* reference back to a literate scrap, with
-                                            $scrap-group attribute: MgScrapFileGroup*
-                                            $resume-at attribute: MgSourceLoc after end of reference
+    kMgElementKind_ScrapRef,            /* reference back to a literate
+                                           scrap, with
+                                            $scrap-group attribute:
+                                                MgScrapFileGroup*
+                                            $resume-at attribute:
+                                                MgSourceLoc after end of ref
                                         */
 } MgElementKind;
 

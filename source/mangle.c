@@ -120,9 +120,9 @@ void MgReadLinesFromString(
 
 //
 
-void MgParseInputFileText(
-    MgContext*    context,
-    MgInputFile*  inputFile)
+void MgReadLines(
+    MgContext*      context,
+    MgInputFile*    inputFile )
 {
     int lineCount = MgCountLinesInString( inputFile->text );
     MgLine* beginLines = (MgLine*) malloc(lineCount * sizeof(MgLine));
@@ -133,13 +133,34 @@ void MgParseInputFileText(
     MgReadLinesFromString(
         inputFile->text,
         beginLines,
-        endLines );
+        endLines );    
+}
+
+void MgParseInputFileText(
+    MgContext*      context,
+    MgInputFile*    inputFile )
+{
+    MgReadLines( context, inputFile );
 
     MgElement* firstElement = MgParseBlockElements(
         context,
         inputFile,
-        beginLines,
-        endLines );
+        inputFile->beginLines,
+        inputFile->endLines );
+    inputFile->firstElement = firstElement;
+}
+
+void MgParseMetaDataText(
+    MgContext*      context,
+    MgInputFile*    inputFile )
+{
+    MgReadLines( context, inputFile );
+
+    MgElement* firstElement = MgParseMetaDataElements(
+        context,
+        inputFile,
+        inputFile->beginLines,
+        inputFile->endLines );
     inputFile->firstElement = firstElement;
 }
 
@@ -254,7 +275,7 @@ void MgFinalize(
     }
 }
 
-MgInputFile* MgAddInputFileText(
+MgInputFile* MgAllocateInputFile(
     MgContext*    context,
     const char* path,
     const char* textBegin,
@@ -273,13 +294,30 @@ MgInputFile* MgAddInputFileText(
 
     MgInputFile* inputFile = (MgInputFile*) malloc(sizeof(MgInputFile));
     if( !inputFile )
-        return 0;
+        return MG_NULL;
     inputFile->path         = path;
     inputFile->text         = text;
     inputFile->firstElement = 0;
     inputFile->next         = 0;
     inputFile->allocatedFileData = 0;
     inputFile->firstReferenceLink = 0;
+
+    return inputFile;
+}
+
+MgInputFile* MgAddInputFileText(
+    MgContext*    context,
+    const char* path,
+    const char* textBegin,
+    const char* textEnd )
+{
+    MgInputFile* inputFile = MgAllocateInputFile(
+        context,
+        path,
+        textBegin,
+        textEnd );
+    if( !inputFile )
+        return MG_NULL;
 
     if( context->lastInputFile )
     {
@@ -298,14 +336,12 @@ MgInputFile* MgAddInputFileText(
     return inputFile;
 }
 
-MgInputFile* MgAddInputFileStream(
+void* MgReadFileStreamContent(
     MgContext*  context,
     char const* path,
-    FILE*       stream )
+    FILE*       stream,
+    int*        outSize )
 {
-    if( !context )  return 0;
-    if( !stream )   return 0;
-
     int begin = ftell(stream);
     fseek(stream, 0, SEEK_END);
     int end = ftell(stream);
@@ -314,6 +350,11 @@ MgInputFile* MgAddInputFileStream(
 
     // allocate buffer for input file
     char* fileData = (char*) malloc(size + 1);
+    if( !fileData )
+    {
+        fprintf(stderr, "failed to allocate buffer for \"%s\"\n", path);        
+        return MG_NULL;
+    }
     // we NULL-terminate the buffer just in case
     // (but the code should never rely on this)
     fileData[size] = 0;
@@ -322,8 +363,26 @@ MgInputFile* MgAddInputFileStream(
     if( sizeRead != size )
     {
         fprintf(stderr, "failed to read from \"%s\"\n", path);
-        return 0;
+        free(fileData);
+        return MG_NULL;
     }
+
+    *outSize = size;
+    return fileData;
+}
+
+MgInputFile* MgAddInputFileStream(
+    MgContext*  context,
+    char const* path,
+    FILE*       stream )
+{
+    if( !context )  return 0;
+    if( !stream )   return 0;
+
+    int size = 0;
+    void* fileData = MgReadFileStreamContent( context, path, stream, &size );
+    if( !fileData )
+        return MG_NULL;
 
     MgString text = { fileData, fileData + size };
     MgInputFile* inputFile = MgAddInputFileText(
@@ -357,3 +416,77 @@ MgInputFile* MgAddInputFilePath(
     fclose(stream);
     return inputFile;
 }
+
+MgInputFile* MgAddMetaDataText(
+    MgContext*  context,
+    const char* path,
+    const char* textBegin,
+    const char* textEnd )
+{
+    // don't allow multiple meta-data files
+    if( context->metaDataFile )
+        return MG_NULL;
+
+    MgInputFile* inputFile = MgAllocateInputFile(
+        context,
+        path,
+        textBegin,
+        textEnd );
+    if( !inputFile )
+        return MG_NULL;
+
+    context->metaDataFile = inputFile;
+
+    MgParseMetaDataText(
+        context,
+        inputFile );
+    return inputFile;
+}
+
+MgInputFile* MgAddMetaDataFileStream(
+    MgContext*  context,
+    const char* path,
+    FILE*       stream )
+{
+    if( !context )  return 0;
+    if( !stream )   return 0;
+
+    int size = 0;
+    void* fileData = MgReadFileStreamContent( context, path, stream, &size );
+    if( !fileData )
+        return MG_NULL;
+
+    MgString text = { fileData, fileData + size };
+    MgInputFile* inputFile = MgAddMetaDataText(
+        context,
+        path,
+        fileData,
+        fileData + size );
+    inputFile->allocatedFileData = fileData;
+    return inputFile;
+}
+
+
+MgInputFile* MgAddMetaDataFile(
+    MgContext*  context,
+    const char* path )
+{
+    FILE* stream = MG_NULL;
+    if( !context )  return 0;
+    if( !path )     return 0;
+
+    stream = fopen(path, "rb");
+    if( !stream )
+    {
+        fprintf(stderr, "mangle: failed to open \"%s\" for reading\n", path);
+        return 0;
+    }
+
+    MgInputFile* inputFile = MgAddMetaDataFileStream(
+        context,
+        path,
+        stream );
+    fclose(stream);
+    return inputFile;
+}
+
