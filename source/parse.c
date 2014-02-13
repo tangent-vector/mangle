@@ -152,6 +152,8 @@ MgScrapFileGroup* MgFindScrapFileGroup(
     {
         if( fileGroup->inputFile == inputFile )
             return fileGroup;
+
+        fileGroup = fileGroup->next;
     }
 
     return 0;
