@@ -33,8 +33,8 @@ echo "fi"                                                                     >>
 echo "mkdir -p \".${name}\""                                                  >> "${name}.sh"
 echo "match=\$(grep --text --line-number '^ARCHIVE:$' \$0 | cut -d ':' -f 1)" >> "${name}.sh"
 echo "archive_start=\$((match + 1))"                                          >> "${name}.sh"
-echo "tail -n +\$archive_start \$0 | uudecode | tar -xzf - -C \".${name}\""   >> "${name}.sh"
-echo "(cd \".${name}\"; rm \"${name}\"; make -s \"${name}\")"                 >> "${name}.sh"
+echo "tail -n +\$archive_start \$0 | uudecode -p | tar -xz - -C \".${name}\""   >> "${name}.sh"
+echo "(cd \".${name}\"; rm -f \"./${name}\"; make -s \"${name}\")"                 >> "${name}.sh"
 echo "\".${name}/${name}\" \"\$@\""                                           >> "${name}.sh"
 echo "exit"                                                                   >> "${name}.sh"
 # the archive comes at the end of the file after a marker
