@@ -377,6 +377,7 @@ typedef enum MgElementKindT
                                         */
 
     /* span-level */
+    kMgElementKind_NewLine,             /* `"\n"` */
     kMgElementKind_Em,                  /* `<em>` */
     kMgElementKind_Strong,              /* `<strong>` */
     kMgElementKind_InlineCode,          /* `<code>` */

@@ -104,6 +104,7 @@ void WriteElement(
         break;
 
     case kMgElementKind_Text:
+    case kMgElementKind_NewLine:
     case kMgElementKind_HtmlBlock:
         break;
 
@@ -225,6 +226,7 @@ void WriteElement(
         break;
 
     case kMgElementKind_Text:
+    case kMgElementKind_NewLine:
     case kMgElementKind_HtmlBlock:
         break;
     case kMgElementKind_Link:

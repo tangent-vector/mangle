@@ -40,9 +40,10 @@ void ExportScrapFileGroup(
 
 void ExportScrapElements(
     MgContext*  context,
-    MgScrap*      scrap,
+    MgScrap*    scrap,
     MgElement*  firstElement,
-    MgWriter*     writer );
+    MgWriter*   writer,
+    int         indent );
 
 void WriteInt(
     MgWriter*     writer,
@@ -68,6 +69,14 @@ void WriteInt(
     MgWriteCString(writer, cursor);
 }
 
+static void Indent(
+    MgWriter*   writer,
+    int         indent )
+{
+    for( int ii = 1; ii < indent; ++ii )
+        MgWriteCString(writer, " ");    
+}
+
 void EmitLineDirectiveAndIndent(
     MgWriter*     writer,
     MgInputFile*  inputFile,
@@ -79,24 +88,29 @@ void EmitLineDirectiveAndIndent(
     MgWriteCString(writer, inputFile->path);
     MgWriteCString(writer, "\"\n");
 
-    int col = loc.col;
-    for( int ii = 1; ii < col; ++ii )
-        MgWriteCString(writer, " ");
+    Indent( writer, loc.col );
 }
 
 void ExportScrapElement(
     MgContext*  context,
-    MgScrap*      scrap,
+    MgScrap*    scrap,
     MgElement*  element,
-    MgWriter*     writer )
+    MgWriter*   writer,
+    int         indent )
 {
     switch( element->kind )
     {
     case kMgElementKind_CodeBlock:
     case kMgElementKind_Text:
         MgWriteString(writer, element->text);
-        ExportScrapElements(context, scrap, element->firstChild, writer);
+        ExportScrapElements(context, scrap, element->firstChild, writer, indent);
         break;
+
+    case kMgElementKind_NewLine:
+        MgWriteString(writer, element->text);
+        Indent( writer, indent );
+        break;
+
     case kMgElementKind_LessThanEntity:
         MgWriteCString(writer, "<");
         break;
@@ -124,12 +138,13 @@ void ExportScrapElement(
 
 void ExportScrapElements(
     MgContext*  context,
-    MgScrap*      scrap,
+    MgScrap*    scrap,
     MgElement*  firstElement,
-    MgWriter*     writer )
+    MgWriter*   writer,
+    int         indent )
 {
     for( MgElement* element = firstElement; element; element = element->next )
-        ExportScrapElement( context, scrap, element, writer );
+        ExportScrapElement( context, scrap, element, writer, indent );
 }
 
 void ExportScrapText(
@@ -142,7 +157,8 @@ void ExportScrapText(
         context,
         scrap,
         scrap->body,
-        writer );
+        writer,
+        scrap->sourceLoc.col );
 }
 
 

@@ -576,7 +576,10 @@ MgElement* MgReadSpanElementsFromLines(
     for( MgLine* line = beginLines; line != endLines; ++line )
     {
         ReadLineSpans( context, inputFile, line, line->text.begin, line->text.end, flags, &writer );
-        AddLiteralSpan( &writer, "\n" );
+        MgElement* newLine = MgCreateLeafElement(
+            kMgElementKind_NewLine,
+            MgTerminatedString("\n"));
+        AddSpanElement( &writer, newLine );
     }
     return writer.firstElement;
 }
