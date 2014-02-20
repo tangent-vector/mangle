@@ -396,15 +396,15 @@ static void SkipWhiteSpace(
 MgBool ParseLiterateScrapIntroduction(
     MgContext*      context,
     MgInputFile*    inputFile,
-    MgLine*         line,
-    MgScrapKind*      outScrapKind,
+    MgString        text,
+    MgScrapKind*    outScrapKind,
     char const**    outScrapIdBegin,
     char const**    outScrapIdEnd,
     char const**    outScrapNameBegin,
     char const**    outScrapNameEnd )
 {
     MgReader reader;
-    InitializeLineReader( &reader, line );
+    MgInitializeStringReader( &reader, text );
 
     // Allow scrap introduction to start with
     // comment and whitespace:
@@ -543,6 +543,15 @@ MgBool ParseLiterateScrapIntroduction(
     if( MgGetChar(&reader) != '>' )
         return MG_FALSE;
 
+    if( MgPeekChar(&reader) == '+' )
+        MgGetChar(&reader);
+    if( MgGetChar(&reader) != '=' )
+        return MG_FALSE;
+
+    SkipWhiteSpace( &reader );
+    if( MgGetChar(&reader) != -1 )
+        return MG_FALSE;
+
     TrimLeadingSpace(&scrapIdBegin, scrapIdEnd);
     TrimTrailingSpace(scrapIdBegin, &scrapIdEnd);
 
@@ -577,7 +586,7 @@ MgElement* ParseCodeBlockBody(
     char const* scrapNameBegin  = 0;
     char const* scrapNameEnd    = 0;
     if( ParseLiterateScrapIntroduction(
-        context, inputFile, firstLine,
+        context, inputFile, firstLine->text,
         &scrapKind,
         &scrapIdBegin,      &scrapIdEnd,
         &scrapNameBegin,    &scrapNameEnd ) )
@@ -656,6 +665,26 @@ char const* CheckIndentedCodeLine(
     return reader.cursor;
 }
 
+MgBool CheckLiterateScrapIntroductionLine(
+    MgContext*      context,
+    MgInputFile*    inputFile,
+    const char*     lineStart,
+    MgLine*         line )
+{
+    MgString text = MgMakeString(lineStart, line->text.end);
+    MgScrapKind scrapKind = kScrapKind_Unknown;
+    char const* scrapIdBegin    = 0;
+    char const* scrapIdEnd      = 0;
+    char const* scrapNameBegin  = 0;
+    char const* scrapNameEnd    = 0;
+
+    return ParseLiterateScrapIntroduction(
+        context, inputFile, text,
+        &scrapKind,
+        &scrapIdBegin,      &scrapIdEnd,
+        &scrapNameBegin,    &scrapNameEnd );
+}
+
 MgElement* ParseIndentedCode(
     MgContext*    context,
     MgInputFile*  inputFile,
@@ -677,6 +706,15 @@ MgElement* ParseIndentedCode(
                 return 0; // this isn't a code block at all!
             else
                 break; // end of the code block
+        }
+
+        // if the line that starts the paragraph looks like a
+        // literate scrap introduction `<< foo >>=`, then end
+        // this code block so we can start a new one.
+        if( line != firstLine
+            && CheckLiterateScrapIntroductionLine(context, inputFile, lineStart, line) )
+        {
+            break;
         }
 
         // we are starting a paragraph within the code block
@@ -1664,6 +1702,12 @@ MgElement* MgParseBlockElements(
         MgElement* element = ReadElement( context, inputFile, &lineRange );
         lastElement->next = element;
         lastElement = element;
+
+        // The reading code may have read a sequence of blocks, rather
+        // than a single block. We need to make sure to advance our
+        // "cursor" to the real end of the list.
+        while( lastElement->next )
+            lastElement = lastElement->next;
     }
 
     return firstElement;
