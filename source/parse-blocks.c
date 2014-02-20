@@ -379,6 +379,20 @@ MgString CString(char const* text)
     return string;
 }
 
+static void SkipWhiteSpace(
+    MgReader* reader )
+{
+    for(;;)
+    {
+        int c = MgGetChar(reader);
+        if( !isspace(c) )
+        {
+            MgUnGetChar(reader, c);
+            return;
+        }
+    }
+}
+
 MgBool ParseLiterateScrapIntroduction(
     MgContext*      context,
     MgInputFile*    inputFile,
@@ -391,6 +405,32 @@ MgBool ParseLiterateScrapIntroduction(
 {
     MgReader reader;
     InitializeLineReader( &reader, line );
+
+    // Allow scrap introduction to start with
+    // comment and whitespace:
+    int c = MgGetChar( &reader );
+    switch( c )
+    {
+    default:
+        MgUnGetChar( &reader, c );
+        break;
+
+    case '/':
+        {
+            int d = MgGetChar( &reader );
+            if( d != '/' )
+            {
+                MgUnGetChar( &reader, d );
+                MgUnGetChar( &reader, c );
+                break;
+            }
+
+            SkipWhiteSpace( &reader );
+            break;
+        }
+
+    // TODO: C-style "/* */" comments
+    }
 
     if( MgGetChar(&reader) != '<' )
         return MG_FALSE;
@@ -1147,20 +1187,6 @@ MgElement* ParseBlockLevelHtml(
     return MgCreateParentElement(
         kMgElementKind_HtmlBlock,
         firstChild );
-}
-
-static void SkipWhiteSpace(
-    MgReader* reader )
-{
-    for(;;)
-    {
-        int c = MgGetChar(reader);
-        if( !isspace(c) )
-        {
-            MgUnGetChar(reader, c);
-            return;
-        }
-    }
 }
 
 MgBool ParseLinkDefinitionTitle(
