@@ -1,24 +1,29 @@
-# Mangle: A Literate Programming Tool
+Mangle: A Literate Programming Tool
+===================================
 
-Mangle is a tool for literate programming with Markdown and C family programming languages. It processes Markdown files into HTML files and then exports selected code blocks to code files.
+Mangle is a tool for literate programming with Markdown and C family programming languages. It processes Markdown files into HTML files and also exports selected code blocks to code files.
 
-The goal of Mangle is to allow literate programs to be as readable as possible in their original (text) form, as well as when browsed on GitHub. As such, the syntax for defining the liteate program "scraps" tries to be as minimal as possible.
+The goals of Mangle include:
 
-## Building
+ * Allow literate programs to be as readable as possible in their original (text) form.
+ * Make literate programs pleasant to read when viewed as Markdown files on GitHub.
+ * Require minimal effort to adopt.
 
-A fairly simple Makefile and a Visual Studio 2013 project are included, but in practice you should just be able to pass all the .cpp files in the source/ directory to your favorite C++ compiler:
+Getting Started
+---------------
 
-    c++ -o mangle *.cpp
+In order to use Mangle in a project, you can just copy the `mangle.c` file as well as `mangle.sh` and/or `mangle.bat` into your source tree. The batch file (for Windows) and shell script (for everything else) will try to build an executable from `mangle.c` when you run them the first time (or when `mangle.c` changes), and re-use it thereafter.
 
-## Running
+In order to generate source and documentation files for a project, simply pass all of the literate source files to `mangle.bat` (for Windows) or `mangle.sh` (for everything else):
 
-In order to generate source and documentation files for a project, simply pass all of the literate programming source files to mangle:
+    mangle.sh *.md
 
-    mangle *.md
+This will generate one `*.html` file from each `*.md` input, as well as any code files specified within the literate source.
 
-You can also pass files one at a time, so long as you don't have any "global scraps" (those that accumulate across files).
+You could also pass files to Mangle one at a time, as long as you don't use the "global scraps" feature.
 
-## Syntax
+Syntax
+------
 
 The general syntax of Mangle is that of [Markdown][], with an attempt to include the more important features of [Github Flavored Markdown][GFM] (there are also a few features that come from [Discount][]).
 
@@ -30,7 +35,7 @@ Mangle then adds a few new pieces of syntax inspired by [noweb][] for defining a
 
   [noweb]:      http://www.cs.tufts.edu/~nr/noweb/                          "Noweb"
 
-### Scrap Definitions
+### Scrap Definitions ###
 
 By default, Markdown code blocks are *not* written to any output code file:
 
