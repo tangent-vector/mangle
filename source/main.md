@@ -1,20 +1,33 @@
 
-#line 89 "source/main.md"
-    
-#line 18 "source/main.md"
+Mangle: A Literate Programming Tool
+===================================
+
+Mangle is a tool for literate programming using Markdown
+together with C-like languages. Please see the README.md
+file if you want to know how to use Mangle as a command-
+line tool, and to understand the kind of syntax it expects.
+This header file will only document the library interface
+to Mangle's internals, for the benefit of anybody who
+wants to build on or improve it.
+
+
+License
+--------
+
+    <<global:license>>=
     /****************************************************************************
     Copyright (c) 2014 Tim Foley
-    
+
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in
     all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,87 +36,135 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
     ****************************************************************************/
-    
-#line 89 "source/main.md"
-               
-    
+
+
+
+
+
+Utilities
+---------
+
+First we have common stuff shared across multiple code files.
+
+We define our own Boolean type, since we are using C and can't assume C11.
+
+    <<utility declarations>>+=
+    typedef int MgBool;
+    #define MG_TRUE     (1)
+    #define MG_FALSE    (0)
+
+We define our own `NULL`, in case we ever want to compile this code without
+including `<stdlib.h>`.
+
+    <<utility declarations>>+=
+    #define MG_NULL     (0)
+
+We use the `MgLine` type for lines that have been loaded into memory.
+
+    <<utility declarations>>+=
+    struct MgLineT
+    {
+        MgString      text;
+        char const* originalBegin;
+    };
+
+Initially, `text.begin` and `text.end` point at the start of the line, and
+just before the line-ending terminator (if any). The `originalBegin` field
+always points at the very start of the line as stored on disk.
+
+During parsing, routines that recognize a pattern might "trim" characters
+from the beginning (or end, potentially) of the line so that further passes
+see only a subset of characters. For example, when parsing a block quote,
+with a prefix of `"> "`, we advance the `begin` pointer by two characters
+before recursively parsing the quoted text.
+
+This design lets us avoid making a lot of copies of data during parsing,
+so that we can instead just use the original buffer of the file contents.
+
+
+
+Here we go:
+
+    <<file:mangle.c>>=
+    <<license>>
+
     #include <assert.h>
     #include <ctype.h>
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
-    
+
     /* API */
-    
+
     /*
-        
-    ## Context ##
     
+    ## Context ##
+
     All of the state for operations you do with Mangle gets
     stored in a `MgContext`. The contents of this type
     are laid bare at later in this file, but you shouldn't
     need to rely on those details as a client of the API.
     */
     typedef struct MgContextT MgContext;
-    
+
     /*
     Before using other Mangle functions, you must initialize
     the context with `MgInitialize`, and when you are
     done you ought to call `MgFinalize` to let the
     library clean up any memory it has allocated.
     */
-    
+
     void MgInitialize(
         MgContext*  context );
-    
+
     void MgFinalize(
         MgContext*  context);
-    
+
     /*
     ## Input Files ##
-    
+
     After initializing a context, you then need to read in
     one or more files containing literate program code.
     The type `MgInputFile` represents an input file,
     which will ultimately be in a one-to-one relationship
     with output documentation files.
     */
-    
+
     typedef struct MgInputFileT MgInputFile;
-    
+
     /*
     The fundamental entry point for adding input files to
     the context is `MgAddInputFileText`. You can use
     this function directly, or one of the convenience
     routines that follows:
     */
-    
+
     MgInputFile* MgAddInputFileText(
         MgContext*  context,
         const char* path,       /* path to use when picking output file name/path */
         const char* textBegin,  /* pointer to start of text buffer */
         const char* textEnd );  /* pointer to end of text buffer, or NULL if buffer is NULL-terminated */
-    
+
     /*
     In the common case, the input might be files on disk, so
     you can just use `MgAddInputFileStream` or
     `MgAddInputFilePath` instead.
     */
-    
+
     #ifndef MANGLE_NO_STDIO
     MgInputFile* MgAddInputFileStream(
         MgContext*  context,
         const char* path,
         FILE*       stream );
-    
+
     MgInputFile* MgAddInputFilePath(
         MgContext*  context,
         const char* path );
     #endif
-    
+
     /*
     ## Meta-Data ##
-    
+
     The user can also specify a "meta-data" file that contains declarations that
     will apply to all input files. This can be used to specify things that will
     go into headers of the HTML output documents. The functions below return
@@ -111,22 +172,22 @@
     allow meta-data declarations in the ordinary files too), but the file will
     not be added to the linked list of input documents.
     */
-    
+
     MgInputFile* MgAddMetaDataText(
         MgContext*  context,
         const char* path,
         const char* textBegin,
         const char* textEnd );
-    
+
     #ifndef MANGLE_NO_STDIO
     MgInputFile* MgAddMetaDataFile(
         MgContext*  context,
         const char* path );
     #endif
-    
+
     /*
     ## Output ##
-    
+
     As input files are read, Mangle builds up a representation
     of Markdown document structure, and also creates a cross-
     referenced database of literate programming "scraps" that
@@ -134,64 +195,64 @@
     same identifier are grouped together, and some of these
     groups represent source files that should be compiled
     to create a program.
-    
+
     Once you are done adding input files, you can begin to
     export documentation and code files. The simplest way
     to do this is with `MgWriteAllDocFiles` and
     `MgWriteAllCodeFiles`.
     */
-    
+
     #ifndef MANGLE_NO_STDIO
     void MgWriteAllDocFiles(
         MgContext* context );
-    
+
     void MgWriteAllCodeFiles(
         MgContext* context );
     #endif
-    
+
     /*
     If this isn't suitable for your needs, you can instead
     iterate over the relevant files yourself.
-    
+
     Input files can be iterated using `MgGetFirstInputFile`
     and `MgGetNextInputFile`, or by just hanging on to
     the pointer returned by `MgAddInputFile*`:
     */
-    
+
     MgInputFile* MgGetFirstInputFile(
         MgContext* context );
-    
+
     MgInputFile* MgGetNextInputFile(
         MgInputFile* inputFile );
-    
+
     /*
     Similarly, you can iterate over the output code files that
     were specified in the literate program, by using
     `MgGetFirstCodeFile` and `MgGetNextCodeFile`.
-    
+
     Note that output code files are just a special case of
     "scrap groups," so this is really just a specialized
     iterator over a subset of those:
     */
     typedef struct MgScrapNameGroupT MgScrapNameGroup;
-    
+
     MgScrapNameGroup* MgGetFirstCodeFile(
         MgContext* context );
-    
+
     MgScrapNameGroup* MgGetNextCodeFile(
         MgScrapNameGroup* codeFile );
-    
+
     /*
     Once you have the pointer to the input file or code file, you can
     use one of the following functions to output it to a file.
-    
+
     The first pair of functions outputs docs/code to a file where
     the path is chosen by Mangle. For code files this will be
     the code path prefix (if any) and the name given in the literate
     code. For doc files, the name will be the doc path prefix (if any)
     and the path of the input file with any file extension replaced
     with `.html`.
-    
+
     By default, Mangle will first output the content to memory,
     and then check whether that data differs from what is on
     disk already (by reading the output file). This is a
@@ -199,34 +260,34 @@
     haven't really changed, causing build systems that look
     at modification times to get confused.
     */
-    
+
     #ifndef MANGLE_NO_STDIO
     void MgWriteDocFile(
         MgContext*      context,
         MgInputFile*    inputFile);
-    
+
     void MgWriteCodeFile(
         MgContext*          context,
         MgScrapNameGroup*   codeFile );
     #endif
-    
+
     /*
     TODO: lower-level routines for output to buffer/FILE*.
     */
-    
+
     /*
     The following declarations give us the data structures used to represent
     documents that have been parsed by Mangle. A client of the API probably
     doesn't need to see any of this, but it is easier to define it here
     than to try to hide it all.
     */
-    
+
     typedef struct MgLineT              MgLine;
     typedef struct MgReferenceLinkT     MgReferenceLink;
     typedef struct MgScrapT             MgScrap;
     typedef struct MgScrapFileGroupT    MgScrapFileGroup;
     typedef struct MgElementT           MgElement;
-    
+
     /*
     A sub-range of an existing string buffer.
     */
@@ -235,7 +296,7 @@
         char const* begin;
         char const* end;
     } MgString;
-    
+
     /*
     A location inside a source file (one-based line and column numbers).
     */
@@ -244,7 +305,7 @@
         int line;
         int col;
     } MgSourceLoc;
-    
+
     /*
     Kinds of scraps.
     */
@@ -255,7 +316,7 @@
         kScrapKind_GlobalMacro, /* a global (cross-file) macro `global:` */
         kScrapKind_LocalMacro,  /* a local macro `local:` */
     } MgScrapKind;
-    
+
     /*
     A single scrap definition.
     */
@@ -266,7 +327,7 @@
         MgElement*          body;       /* the body of the scrap (as parsed elements) */
         MgScrap*            next;       /* the next scrap in the same file group */
     };
-    
+
     /*
     A scrap file group represents one or more scraps with the same ID, in the
     same input file.
@@ -279,7 +340,7 @@
         MgScrap*          lastScrap;    /* the last scrap definition in the file for this ID */
         MgScrapFileGroup* next;         /* the next file group with the same ID */
     };
-    
+
     /*
     A scrap name group represents one or more scraps with the same ID, grouped by file.
     */
@@ -292,7 +353,7 @@
         MgScrapFileGroup*   lastFileGroup;  /* last file group with this ID */
         MgScrapNameGroup*   next;           /* next scrap name group in the context */
     };
-    
+
     /*
     An input file represents one of the Markdown documents that has been input
     to the Mangle context.
@@ -308,7 +369,7 @@
         MgInputFile*    next;               /* next input file in context */
         MgReferenceLink*firstReferenceLink; /* first reference link parsed */
     };
-    
+
     /*
     The `MgContext` type holds the state of the entire Mangle system.
     */
@@ -316,13 +377,13 @@
     {
         MgInputFile*        firstInputFile;         /* singly-linked list of input files */
         MgInputFile*        lastInputFile;
-    
+
         MgScrapNameGroup*   firstScrapNameGroup;    /* singly-linked list of scrap name groups */
         MgScrapNameGroup*   lastScrapNameGroup;
-    
+
         MgInputFile*        metaDataFile;
     };
-    
+
     /*
     Kind of elements that we parse. These match closely to HTML element types
     as well as Markdown document structure.
@@ -330,7 +391,7 @@
     typedef enum MgElementKindT
     {
         /* block-level */
-    
+
         kMgElementKind_Header1,             /* `<h1>` */
         kMgElementKind_Header2,             /* `<h2>` */
         kMgElementKind_Header3,             /* `<h3>` */
@@ -358,7 +419,7 @@
                                                 children: value
                                                 $key attribute: key
                                             */
-    
+
         /* span-level */
         kMgElementKind_NewLine,             /* `"\n"` */
         kMgElementKind_Em,                  /* `<em>` */
@@ -380,12 +441,12 @@
                                                     MgSourceLoc after end of ref
                                             */
     } MgElementKind;
-    
+
     /*
     A reference link structure is used to track the association between a
     reference site for a reference-style link like `[Foo][]` and the
     associated definition `[Foo] http://foo.com "Foo"`.
-    
+
     It is created whenever a def/ref is encountered, and filled in with
     whatever information is available at the def/ref site. Later defs/refs
     for the same ID (case-insensitive) will refer to the same structure.
@@ -397,7 +458,7 @@
         MgString          title;
         MgReferenceLink*  next;
     };
-    
+
     /*
     An attribute structure is used to represent auxiliary data attached
     to an element. This is both used for HTML attributes (in which case
@@ -419,7 +480,7 @@
             MgSourceLoc       sourceLoc;
         };
     };
-    
+
     /*
     An element represents a part of the Markdown or HTML document structure.
     Each eleemnt has a `kind` that effectively tells us what the HTML tag
@@ -429,208 +490,31 @@
     struct MgElementT
     {
         MgElementKind   kind;
-    
+
         MgString        text;
-    
+
         MgAttribute*    firstAttr;
         MgElement*      firstChild;
-    
+
         MgElement*      next;
     };
-    
-    
+
+
     /*
-    
+
     Implementation
     ==============
-    
+
     After this point we have the implementation of the above API,
     and then after *that* we have a driver application.
     */
-    
-    
-#line 52 "source/main.md"
-    typedef int MgBool;
-    #define MG_TRUE     (1)
-    #define MG_FALSE    (0)
-    
-#line 60 "source/main.md"
-    #define MG_NULL     (0)
-    
-#line 65 "source/main.md"
-    struct MgLineT
-    {
-        MgString      text;
-        char const* originalBegin;
-    };
-    
-#line 512 "source/main.md"
-                            
-    
-    
-#line 8 "source/reader.md"
-    typedef struct MgReaderT
-    {
-        MgString    string;
-        char const* cursor;
-    } MgReader;
-    
-#line 18 "source/reader.md"
-    enum
-    {
-        kMgEndOfFile = -1,
-    };
-    
-#line 26 "source/reader.md"
-    void MgInitializeStringReader(
-        MgReader*   reader,
-        MgString          string )
-    {
-        reader->string  = string;
-        reader->cursor  = string.begin;    
-    }
-    
-#line 38 "source/reader.md"
-    MgBool MgAtEnd(
-        MgReader*   reader )
-    {
-        return reader->cursor == reader->string.end;
-    }
-    
-#line 47 "source/reader.md"
-    int MgGetChar(
-        MgReader*   reader )
-    {
-        if( MgAtEnd(reader) )
-            return kMgEndOfFile;
-    
-        return *(reader->cursor++);
-    }
-    
-#line 60 "source/reader.md"
-    void MgUnGetChar(
-        MgReader*   reader,
-        int             value )
-    {
-        if( value == kMgEndOfFile )
-            return;
-    
-        --(reader->cursor);
-    }
-    
-#line 76 "source/reader.md"
-    int MgGetPrecedingChar(
-        MgReader*   reader )
-    {
-        if( reader->cursor == reader->string.begin )
-            return -1;
-    
-        return *(reader->cursor - 1);
-    }
-    
-#line 89 "source/reader.md"
-    int MgPeekChar(
-        MgReader* reader )
-    {
-        int result = MgGetChar( reader );
-        MgUnGetChar( reader, result );
-        return result;
-    }
-    
-#line 514 "source/main.md"
-                          
-    
-    
-#line 7 "source/string.md"
-    static MgBool MgIsEmptyString(
-        MgString string)
-    {
-        return string.begin == string.end;
-    }
-    
-#line 17 "source/string.md"
-    MgString MgMakeString(
-        char const* begin,
-        char const* end)
-    {
-        MgString result;
-        result.begin    = begin;
-        result.end      = end;
-        return result;
-    }
-    
-#line 30 "source/string.md"
-    MgString MgMakeEmptyString()
-    {
-        return MgMakeString(MG_NULL, MG_NULL);
-    }
-    
-#line 39 "source/string.md"
-    MgString MgTerminatedString(
-        char const* begin)
-    {
-        return MgMakeString(begin, begin + strlen(begin));
-    }
-    
-#line 49 "source/string.md"
-    MgBool MgStringsAreEqualNoCase(
-        MgString left,
-        MgString right )
-    {
-        char const* leftCursor = left.begin;
-        char const* rightCursor = right.begin;
-    
-        for(;;)
-        {
-            MgBool leftAtEnd = leftCursor == left.end;
-            MgBool rightAtEnd = rightCursor == right.end;
-            if( leftAtEnd || rightAtEnd )
-                return leftAtEnd == rightAtEnd;
-    
-            char leftChar = *leftCursor++;
-            char rightChar = *rightCursor++;
-            if( tolower(leftChar) != tolower(rightChar) )
-                return MG_FALSE;
-        }
-    }
-    
-#line 73 "source/string.md"
-    MgBool MgStringsAreEqual(
-        MgString left,
-        MgString right )
-    {
-        MgReader leftReader;
-        MgReader rightReader;
-    
-        MgInitializeStringReader( &leftReader, left );
-        MgInitializeStringReader( &rightReader, right );
-    
-        while( !MgAtEnd(&leftReader)
-            && !MgAtEnd(&rightReader) )
-        {
-            int c = MgGetChar(&leftReader);
-            int d = MgGetChar(&rightReader);
-    
-            if( c != d )
-                return MG_FALSE;
-        }
-    
-        return MgAtEnd(&leftReader) == MgAtEnd(&rightReader);
-    }
-    
-#line 516 "source/main.md"
-                          
-    
-    
-    /*
-    
-    
-    
-    
-    
-    
-    
-    
+
+    <<utility declarations>>
+
+    <<reader definitions>>
+
+    <<string definitions>>
+
     /*
     Parsing
     -------
@@ -639,7 +523,7 @@
     {
         kMaxHeaderLevel = 6,
     };
-    
+
     /*
     Flags for parsing span-level elements in Markdown source.
     */
@@ -647,31 +531,31 @@
     {
         /* No flags. */
         kMgSpanFlags_None = 0x00,
-    
+
         /* Enable escaping of HTML entiteis like `&amp;` into characters like `&`.*/
         kMgSpanFlag_EscapeHtmlEntities = 0x01,
-    
+
         /* Disable processing of standard Markdown syntax. */
         kMgSpanFlag_DontProcessMarkdown = 0x02,
-    
+
         /* Default behavior: escape HTML entities, process Markdown. */
         kMgSpanFlags_Default =
             kMgSpanFlag_EscapeHtmlEntities,
-    
+
         /* Inside a code block: escape HTML, but don't process Markdown */
         kMgSpanFlags_CodeBlock =
             kMgSpanFlag_EscapeHtmlEntities
             | kMgSpanFlag_DontProcessMarkdown,
-    
+
         /* Inline code: handle the same as a code block */
         kMgSpanFlags_InlineCode = kMgSpanFlags_CodeBlock,
-    
+
         /* Inside an HTML block: don't process Markdown. */
         kMgSpanFlags_HtmlBlock =
             kMgSpanFlag_DontProcessMarkdown,
     };
     typedef unsigned MgSpanFlags;
-    
+
     /*
     When encountering either a reference to or a definition of a "reference-style"
     link in the document, call this function to get or create the object to represent
@@ -693,18 +577,18 @@
             }
             link = link->next;
         }
-    
+
         link = (MgReferenceLink*) malloc(sizeof(MgReferenceLink));
         link->id    = id;
         link->url   = MgMakeEmptyString();
         link->title = MgMakeEmptyString();
-    
+
         link->next = inputFile->firstReferenceLink;
         inputFile->firstReferenceLink = link;
-    
+
         return link;
     }
-    
+
     /*
     Allocate and add a new attribute to an existing element, with the
     specified NULL-terminated `id` and value.
@@ -718,7 +602,7 @@
         attr->next  = MG_NULL;
         attr->id    = MgTerminatedString(id);
         attr->val   = val;
-    
+
         // this is a linear-time insert, but we expect the
         // number of attributes per element to be very low,
         // so it probably won't matter for performance.
@@ -728,7 +612,7 @@
         *link = attr;
         return attr;
     }
-    
+
     /*
     Allocate an add a new atttribute to an existing element, with the
     specified NULL-terminated `id`, but with no value. The caller is
@@ -741,7 +625,7 @@
     {
         return MgAddAttribute(element, id, MgMakeString(MG_NULL, MG_NULL));
     }
-    
+
     MgElement* MgCreateElementImpl(
         MgElementKind   kind,
         MgString          text,
@@ -755,7 +639,7 @@
         element->next       = MG_NULL;
         return element;
     }
-    
+
     /*
     Create a leaf document element, with the specified kind and text.
     */
@@ -768,7 +652,7 @@
             text,
             MG_NULL );  // no children
     }
-    
+
     /*
     Create a parent document element, with the specified first child in
     the linked list of child elements.
@@ -782,7 +666,7 @@
             MgMakeString(MG_NULL, MG_NULL), // no text
             firstChild );
     }
-    
+
     MgScrapNameGroup* MgFindScrapNameGroup(
         MgContext*    context,
         MgString      id )
@@ -792,13 +676,13 @@
         {
             if( MgStringsAreEqual( group->id, id ) )
                 return group;
-    
+
             group = group->next;
         }
-    
+
         return 0;
     }
-    
+
     MgScrapFileGroup* MgFindScrapFileGroup(
         MgScrapNameGroup* nameGroup,
         MgInputFile*      inputFile )
@@ -808,18 +692,18 @@
         {
             if( fileGroup->inputFile == inputFile )
                 return fileGroup;
-    
+
             fileGroup = fileGroup->next;
         }
-    
+
         return 0;
     }
-    
+
     /*
     When encountering either a reference to or a definition of a scrap,
     call this function to get or create the object that represents the scrap
     group with that `id` for the given `file`.
-    
+
     The `kind` can either be `kMgScrapKind_Unknown` if you don't care what
     kind of scrap it is, or a specific scrap kind if you want to set the
     scrap kind as part of retrieving it. (TODO: separate those steps)
@@ -840,7 +724,7 @@
             nameGroup->firstFileGroup = 0;
             nameGroup->lastFileGroup = 0;
             nameGroup->next = 0;
-    
+
             if( context->lastScrapNameGroup )
             {
                 context->lastScrapNameGroup->next = nameGroup;
@@ -851,7 +735,7 @@
             }
             context->lastScrapNameGroup = nameGroup;
         }
-    
+
         if( nameGroup->kind == kScrapKind_Unknown )
         {
             nameGroup->kind = kind;
@@ -861,7 +745,7 @@
         {
             fprintf(stderr, "incompatible scrap kinds!\n");
         }
-    
+
         MgScrapFileGroup* fileGroup = MgFindScrapFileGroup( nameGroup, file );
         if( !fileGroup )
         {
@@ -871,7 +755,7 @@
             fileGroup->firstScrap   = 0;
             fileGroup->lastScrap    = 0;
             fileGroup->next         = 0;
-            
+        
             if( nameGroup->lastFileGroup )
             {
                 nameGroup->lastFileGroup->next = fileGroup;
@@ -882,10 +766,10 @@
             }
             nameGroup->lastFileGroup = fileGroup;
         }
-    
+
         return fileGroup;
     }
-    
+
     /*
     Add a particular scrap definition to a group of scraps with the same
     ID in the same file.
@@ -904,7 +788,7 @@
         }
         fileGroup->lastScrap = scrap;
     }
-    
+
     MgBool MgCheckMatch(
         MgReader*   reader,
         char            c,
@@ -917,14 +801,14 @@
                 return MG_FALSE;
         }
         return MG_TRUE;
-    
+
     }
-    
+
     /*
     Look ahead in the reader for an occurence of character `c`, `count` times
     in a row. Return a pointer to right before the first character in the match,
     and leave the cursor of the reader pointing right after the match.
-    
+
     If no match is found, returns NULL.
     */
     char const* MgFindMatching(
@@ -945,7 +829,7 @@
                     return mark;
                 }
             }
-    
+
             if( d == '\\' )
             {
                 // read the escaped char, if any
@@ -953,12 +837,12 @@
             }
         }
     }
-    
+
     /*
     Similar to `MgFindMatching`, except that it returns the intial cursor of the
     reader as the `begin` of the result string, and the result from
     `MgFindMatching` as the `end`.
-    
+
     Note: this means that when no match is found, the `end` of the result will
     be NULL, but the `begin` won't be.
     */
@@ -972,21 +856,21 @@
         text.end = MgFindMatching(reader, c, count);
         return text;
     }
-    
+
     int MgGetLineNumber(
         MgInputFile*    inputFile,
         MgLine*         line)
     {
         return 1 + (line - inputFile->beginLines);
     }
-    
+
     int MgGetColumnNumber(
         MgLine*     line,
         const char* cursor)
     {
         return 1 + (cursor - line->originalBegin);
     }
-    
+
     /*
     Return line number and column information (1-based) for a location in the
     given input file, represented by the given pointer into the given line.
@@ -1001,7 +885,7 @@
         sourceLoc.col   = MgGetColumnNumber( line, cursor );
         return sourceLoc;
     }
-    
+
     /*
     ### Span-Level Elements ###
     */
@@ -1009,11 +893,11 @@
     {
         MgElement* firstElement;
         MgElement* lastElement;
-    
+
         char const* spanStart;
         char const* spanEnd;
     } SpanWriter;
-    
+
     void InitializeSpanWriter(
         SpanWriter* writer )
     {
@@ -1022,7 +906,7 @@
         writer->spanStart = 0;
         writer->spanEnd = 0;
     }
-    
+
     void BeginSpan(
         SpanWriter* writer,
         char const* spanStart )
@@ -1030,14 +914,14 @@
         writer->spanStart = spanStart;
         writer->spanEnd = spanStart;
     }
-    
+
     void ExtendSpan(
         SpanWriter* writer,
         char const* spanEnd )
     {
         writer->spanEnd = spanEnd;
     }
-    
+
     void AddSpanElementImpl(
         SpanWriter* writer,
         MgElement*  element )
@@ -1052,25 +936,25 @@
             writer->firstElement = element;
         }
         writer->lastElement = element;
-    
+
         writer->spanStart = 0;
         writer->spanEnd = 0;    
     }
-    
+
     void FlushSpan(
         SpanWriter* writer )
     {
         MgElement* element = MG_NULL;
         if( writer->spanStart == writer->spanEnd )
             return;
-    
+
         element = MgCreateLeafElement(
             kMgElementKind_Text,
             MgMakeString(writer->spanStart, writer->spanEnd) );
-    
+
         AddSpanElementImpl( writer, element );
     }
-    
+
     void AddSpanElement(
         SpanWriter* writer,
         MgElement*  element )
@@ -1078,10 +962,10 @@
         FlushSpan( writer );
         AddSpanElementImpl( writer, element );
     }
-    
-    
+
+
     #include <memory.h>
-    
+
     void AddLiteralSpan(
         SpanWriter* writer,
         char const* text )
@@ -1091,7 +975,7 @@
         ExtendSpan( writer, text + strlen(text) );
         FlushSpan( writer );
     }
-    
+
     void ReadLineSpans(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1100,7 +984,7 @@
         char const*     textEnd,
         MgSpanFlags       flags,
         SpanWriter*     writer );
-    
+
     /*
     Read span-level elements from the range of text given by
     `textBegin` and `textEnd`, using the given flags. The range
@@ -1119,11 +1003,11 @@
         ReadLineSpans(context, inputFile, line, text.begin, text.end, flags, &writer);
         return writer.firstElement;
     }
-    
+
     //
     //
     //
-    
+
     MgElement* ParseHtmlEntity(
         MgContext*        context,
         MgInputFile*      inputFile,
@@ -1134,15 +1018,15 @@
     {
         if( !(flags & kMgSpanFlag_EscapeHtmlEntities) )
             return 0;
-    
+
         int d = MgGetChar( reader );
         if( d != c )
             return 0;
-    
+
         return MgCreateParentElement(
             kind, 0 );
     }
-    
+
     MgElement* ParseHtmlEntity_LessThan(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1152,7 +1036,7 @@
     {
         return ParseHtmlEntity(context, inputFile, reader, flags, '<', kMgElementKind_LessThanEntity);
     }
-    
+
     MgElement* ParseHtmlEntity_GreaterThan(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1162,7 +1046,7 @@
     {
         return ParseHtmlEntity(context, inputFile, reader, flags, '>', kMgElementKind_GreaterThanEntity);
     }
-    
+
     MgElement* ParseHtmlEntity_Ampersand(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1172,7 +1056,7 @@
     {
         return ParseHtmlEntity(context, inputFile, reader, flags, '&', kMgElementKind_AmpersandEntity);
     }
-    
+
     MgElement* ParseScrapRef(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1181,10 +1065,10 @@
         MgSpanFlags       flags )
     {
         MgString scrapID;
-    
+
         if( MgGetChar(reader) != '<' ) return 0;
         if( MgGetChar(reader) != '<' ) return 0;
-    
+
         char const* idBegin = reader->cursor;
         char const* idEnd   = idBegin;
         for(;;)
@@ -1193,7 +1077,7 @@
             int c = MgGetChar( reader );
             if( c == -1 )
                 return 0;
-    
+
             if( c == '>' )
             {
                 int d = MgGetChar( reader );
@@ -1203,7 +1087,7 @@
                 }
             }
         }
-    
+
         // In order to avoid accidentally treating an expression
         // with both left and right shifts as a scrap reference,
         // we require that there be no whitespace after the `<<`.
@@ -1216,17 +1100,17 @@
         // by this logic...)
         // scrap ref: `1 << &nbsp; foo &nbsp; >> bar`
         // shifts:      `1 << foo >> bar`
-    
+
         if( idBegin != idEnd && isspace(*idBegin) )
             return 0;
-    
+
         scrapID = MgMakeString( idBegin, idEnd );
         MgScrapFileGroup* scrapFileGroup = MgFindOrCreateScrapGroup(
             context,
             kScrapKind_Unknown,
             scrapID,
             inputFile );
-    
+
         MgElement* element = MgCreateParentElement(
             kMgElementKind_ScrapRef,
             0 );
@@ -1235,10 +1119,10 @@
         attr = MgAddCustomAttribute(element, "$resume-at");
         MgSourceLoc sourceLoc = MgGetSourceLoc( inputFile, line, reader->cursor );
         attr->sourceLoc = sourceLoc;
-    
+
         return element;
     }
-    
+
     MgElement* ParseEm(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1250,13 +1134,13 @@
         MgElement* inner = MG_NULL;
         if( flags & kMgSpanFlag_DontProcessMarkdown )
             return MG_NULL;
-    
+
         // follow GitHub Flavored Markdown, in only
         // allowing underscores for <em> when
         // they mark a whole word...
         if( (c == '_') && !isspace(MgGetPrecedingChar(reader)) )
             return MG_NULL;
-    
+
         int count = 0;
         for(; count < 2; ++count)
         {
@@ -1269,29 +1153,29 @@
         }
         if( !count )
             return MG_NULL;
-    
+
         int e = MgPeekChar( reader );
         if( isspace(e) )
             return MG_NULL; // can't start with white-space
-    
+
         // appears to be the start of a span.
         // now we need to find the matching marker(s)
         char const* start = reader->cursor;
         char const* end = MgFindMatching( reader, c, count );
         if( !end )
             return MG_NULL;
-    
+
         if( (c == '_') && isalpha(MgPeekChar(reader)) )
             return MG_NULL;
-    
+
         // need to scan the inner text for other span markup
         inner = MgReadSpanElements( context, inputFile, line, MgMakeString(start, end), flags );
-    
+
         return MgCreateParentElement(
             count == 2 ? kMgElementKind_Strong : kMgElementKind_Em ,
             inner );
     }
-    
+
     MgElement* ParseEm_Underscore(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1307,7 +1191,7 @@
             flags,
             '_' );
     }
-    
+
     MgElement* ParseEm_Asterisk(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1323,7 +1207,7 @@
             flags,
             '*' );
     }
-    
+
     MgElement* ParseInlineCode(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1334,7 +1218,7 @@
         MgElement* inner = MG_NULL;
         if( flags & kMgSpanFlag_DontProcessMarkdown )
             return MG_NULL;
-    
+
         int count = 0;
         for(; count < 2; ++count)
         {
@@ -1347,7 +1231,7 @@
         }
         if( !count )
             return MG_NULL;
-    
+
         // allow an optional space at start,
         // which will get trimmed
         int lead = MgGetChar(reader);
@@ -1355,26 +1239,26 @@
         {
             MgUnGetChar(reader, lead);
         }
-    
+
         // appears to be the start of a span.
         // now we need to find the matching marker
         char const* start = reader->cursor;
         char const* end = MgFindMatching( reader, '`', count );
         if( !end )
             return MG_NULL;
-    
+
         // allow an optional space at end
         // which will get trimmed
         if( start != end && (*(end-1) == ' ') )
             --end;
-    
+
         inner = MgReadSpanElements( context, inputFile, line, MgMakeString(start, end), kMgSpanFlags_InlineCode );
-    
+
         return MgCreateParentElement(
             kMgElementKind_InlineCode,
             inner );
     }
-    
+
     MgElement* ParseLink(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1385,33 +1269,33 @@
         MgString text;
         if( flags & kMgSpanFlag_DontProcessMarkdown )
             return 0;
-    
+
         int textOpenBrace = MgGetChar( reader );
         if( textOpenBrace != '[' )
             return 0;
-    
+
         text = MgFindMatchingString( reader, ']', 1 );
         if( !text.end )
             return 0;
-    
+
         int targetOpenBrace = MgGetChar( reader );
         if( targetOpenBrace == '(' )
         {
             MgElement* inner    = MG_NULL;
             MgElement* link     = MG_NULL;
-    
+
             // inline link
             char const* targetBegin = reader->cursor;
             char const* targetEnd = MgFindMatching( reader, ')', 1 );
             if( !targetEnd )
                 return 0;
-    
+
             inner = MgReadSpanElements( context, inputFile, line, text, flags );
-    
+
             link = MgCreateParentElement(
                 kMgElementKind_Link,
                 inner );
-    
+
             MgAddAttribute(link, "href", MgMakeString(targetBegin, targetEnd));
             return link;
         }
@@ -1421,35 +1305,35 @@
             MgString id = MgFindMatchingString(reader, ']', 1);
             if( !id.end )
                 return 0;
-    
+
             if( MgIsEmptyString(id) )
             {
                 id = text;
             }
-    
+
             // \todo: need to save this identifier,
             // so taht we can look up the link target later...
             MgReferenceLink* referenceLink = MgFindOrCreateReferenceLink(
                 inputFile,
                 id );
-    
+
             MgElement* inner = MgReadSpanElements( context, inputFile, line, text, flags );
-    
+
             MgElement* link = MgCreateParentElement(
                 kMgElementKind_ReferenceLink,
                 inner );
-    
+
             MgAttribute* attr = MgAddCustomAttribute(link, "$referenceLink");
             attr->referenceLink = referenceLink;
-    
+
             return link;
         }
-    
+
         return 0;
     }
-    
+
     //
-    
+
     MgElement* TryParseSpanElement(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1483,12 +1367,12 @@
             ++parseFunc;
         }
         while(*parseFunc);
-    
+
         return 0;
     }
-    
+
     //
-    
+
     void ReadLineSpans(
         MgContext*    context,
         MgInputFile*      inputFile,
@@ -1501,9 +1385,9 @@
         MgString string = { textBegin, textEnd };
         MgReader reader;
         MgInitializeStringReader( &reader, string );
-    
+
         BeginSpan( writer, reader.cursor );
-    
+
         while(!MgAtEnd(&reader))
         {
             // look for a match among our various cases
@@ -1514,11 +1398,11 @@
                 BeginSpan( writer, reader.cursor );
                 continue;
             }
-    
+
             // fallback position - read one character
             // and add it to our current textual span
             int c = MgGetChar( &reader );
-    
+
             // okay, with one special case for the '\'
             // escape character...
             //
@@ -1529,22 +1413,22 @@
                 // end the current span, since we need
                 // to skip the '\'
                 FlushSpan( writer );
-    
+
                 // start fresh span *after* the backslash
                 BeginSpan( writer, reader.cursor );
-    
+
                 // read the escaped character, so that
                 // it won't get a chance to be processed
                 // by the other rules
                 c = MgGetChar( &reader );
             }
-    
+
             // default: just extend the span
             ExtendSpan( writer, reader.cursor );
         }
         FlushSpan( writer );
     }
-    
+
     /*
     Read span-level elements from the range of lines given by
     `beginLines` and `endLines`, using the given flags. The range
@@ -1560,7 +1444,7 @@
     {
         SpanWriter writer;
         InitializeSpanWriter( &writer );
-    
+
         for( MgLine* line = beginLines; line != endLines; ++line )
         {
             ReadLineSpans( context, inputFile, line, line->text.begin, line->text.end, flags, &writer );
@@ -1571,18 +1455,18 @@
         }
         return writer.firstElement;
     }
-    
-    
+
+
     /*
     ### Block-Level Elements ###
     */
-    
+
     typedef struct LineRangeT
     {
         MgLine* begin;
         MgLine* end;
     } LineRange;
-    
+
     MgElement* ReadSpansInRange(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1596,12 +1480,12 @@
             lines.end,
             flags );
     }
-    
+
     MgElement* ReadElementsInRange(
         MgContext*      context,
         MgInputFile*    inputFile,
         LineRange       lineRange );
-    
+
     MgBool IsEmptyLine(
         MgLine* line )
     {
@@ -1615,7 +1499,7 @@
         }
         return MG_TRUE;
     }
-    
+
     MgBool LineIsAll(
         MgLine* line,
         char    c )
@@ -1634,18 +1518,18 @@
         }
         return MG_TRUE;
     }
-    
+
     typedef MgElement* (*ParseFunc)( MgContext*, MgInputFile*, LineRange* );
-    
+
     MgLine* GetLine(
         LineRange*  ioLineRange )
     {
         if( ioLineRange->begin == ioLineRange->end )
             return 0;
-    
+
         return ioLineRange->begin++;
     }
-    
+
     void UnGetLine(
         LineRange*  ioLineRange,
         MgLine*     line )
@@ -1654,7 +1538,7 @@
         assert(line == (ioLineRange->begin-1));
         ioLineRange->begin--;
     }
-    
+
     LineRange MgInclusiveLineRange(
         MgLine* first,
         MgLine* last)
@@ -1662,7 +1546,7 @@
         LineRange range = { first, last + 1 };
         return range;
     }
-    
+
     LineRange Snip(
         MgLine*     firstLine,
         MgLine*     lastLine,
@@ -1673,12 +1557,12 @@
         ioLineRange->begin = lastLine + 1;
         return MgInclusiveLineRange( firstLine, lastLine );
     }
-    
+
     //
     //
     //
-    
-    
+
+
     MgElement* ParseSetextHeader(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -1690,28 +1574,28 @@
         MgLine* firstLine = GetLine(ioLineRange);
         MgLine* secondLine = GetLine(ioLineRange);
         if( !secondLine ) return 0;
-    
+
         // ignore kind of first line, assuming other
         // parsers have gotten a fair chance already
         if(!LineIsAll(secondLine, c))
             return 0;
-    
+
         // the inner range does not include the second line,
         // so we can't just use the Snip() function for everything
         innerRange = MgInclusiveLineRange(firstLine, firstLine);
         Snip( firstLine, secondLine, ioLineRange );
-    
+
         MgElement* firstChild = ReadSpansInRange(
             context,
             inputFile,
             innerRange,
             kMgSpanFlags_Default );
-    
+
         return MgCreateParentElement(
             kind,
             firstChild );
     }
-    
+
     MgElement* ParseSetextHeader1(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -1723,7 +1607,7 @@
             '=',
             kMgElementKind_Header1 );
     }
-    
+
     MgElement* ParseSetextHeader2(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -1735,7 +1619,7 @@
             '-',
             kMgElementKind_Header2 );
     }
-    
+
     void TrimLeadingSpace(
         char const** ioBegin,
         char const* end )
@@ -1745,7 +1629,7 @@
             ++begin;
         *ioBegin = begin;
     }
-    
+
     void TrimTrailingSpace(
         char const* begin,
         char const** ioEnd )
@@ -1755,7 +1639,7 @@
             --end;
         *ioEnd = end;
     }
-    
+
     void TrimTrailingChar(
         char const* begin,
         char const** ioEnd,
@@ -1766,14 +1650,14 @@
             --end;
         *ioEnd = end;
     }
-    
+
     void InitializeLineReader(
         MgReader*   reader,
         MgLine*         line )
     {
         MgInitializeStringReader( reader, line->text );
     }
-    
+
     MgElement* ParseAtxHeader(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -1781,10 +1665,10 @@
     {
         LineRange innerRange;
         MgLine* firstLine = GetLine( ioLineRange );
-    
+
         MgReader reader;
         InitializeLineReader(&reader, firstLine);
-    
+
         int level = 0;
         for(;;)
         {
@@ -1796,37 +1680,37 @@
             }
             ++level;
         }
-    
+
         if( level == 0 ) return 0;
-    
+
         firstLine->text.begin = reader.cursor;
-    
+
         TrimLeadingSpace( &firstLine->text.begin, firstLine->text.end );
         TrimTrailingChar( firstLine->text.begin, &firstLine->text.end, '#' );
         TrimTrailingSpace( firstLine->text.begin, &firstLine->text.end );
-    
+
         if( level > kMaxHeaderLevel )
             level = kMaxHeaderLevel;
-    
+
         innerRange = Snip( firstLine, firstLine, ioLineRange );
-    
+
         MgElement* firstChild = ReadSpansInRange( context, inputFile, innerRange, kMgSpanFlags_Default );
-    
+
         return MgCreateParentElement(
             (MgElementKind) (kMgElementKind_Header1 + (level-1)),
             firstChild );
     }
-    
+
     char const* CheckQuoteLine(
         MgLine* line )
     {
         MgReader reader;
         InitializeLineReader(&reader, line );
-    
+
         int c = MgGetChar( &reader );
         if( c != '>' )
             return 0;
-    
+
         int d = MgGetChar( &reader );
         if( d != ' ' )
         {
@@ -1834,7 +1718,7 @@
         }
         return reader.cursor;
     }
-    
+
     MgElement* ParseBlockQuote(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -1842,13 +1726,13 @@
     {
         MgLine* firstLine = GetLine( ioLineRange );
         MgLine* lastLine = firstLine;
-    
+
         MgLine* line = firstLine;
         for(;;)
         {
             if( !line )
                 break;
-    
+
             char const* lineStart = CheckQuoteLine(line);
             if( !lineStart )
             {
@@ -1857,9 +1741,9 @@
                 else
                     break; // we've found the first line that doesn't belong
             } 
-    
+
             // we are starting a paragraph within the block quote
-    
+
             // continue consuming lines until we see an empty line
             while( line && !IsEmptyLine(line) )
             {
@@ -1869,28 +1753,28 @@
                 lastLine = line;
                 line = GetLine( ioLineRange );
             }
-    
+
             // continue consuming lines until we see a non-empty line
             while( line && IsEmptyLine(line) )
             {
                 line = GetLine( ioLineRange );
             }
         }
-    
+
         LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
+
         MgElement* firstChild = ReadElementsInRange(context, inputFile, innerRange);
         return MgCreateParentElement(
             kMgElementKind_BlockQuote,
             firstChild );
     }
-    
+
     int GetIndent(
         MgLine* line )
     {
         char const* cursor = line->text.begin;
         char const* end = line->text.end;
-    
+
         int indent = 0;
         while( cursor != end )
         {
@@ -1911,13 +1795,13 @@
         }
         return indent;
     }
-    
+
     MgString CString(char const* text)
     {
         MgString string = { text, text + strlen(text) };
         return string;
     }
-    
+
     static void SkipWhiteSpace(
         MgReader* reader )
     {
@@ -1931,7 +1815,7 @@
             }
         }
     }
-    
+
     MgBool ParseLiterateScrapIntroduction(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1944,7 +1828,7 @@
     {
         MgReader reader;
         MgInitializeStringReader( &reader, text );
-    
+
         // Allow scrap introduction to start with
         // comment and whitespace:
         int c = MgGetChar( &reader );
@@ -1953,7 +1837,7 @@
         default:
             MgUnGetChar( &reader, c );
             break;
-    
+
         case '/':
             {
                 int d = MgGetChar( &reader );
@@ -1963,19 +1847,19 @@
                     MgUnGetChar( &reader, c );
                     break;
                 }
-    
+
                 SkipWhiteSpace( &reader );
                 break;
             }
-    
+
         // TODO: C-style "/* */" comments
         }
-    
+
         if( MgGetChar(&reader) != '<' )
             return MG_FALSE;
         if( MgGetChar(&reader) != '<' )
             return MG_FALSE;
-    
+
         // look for a possible scrap kind marker
         char const* savedCursor = reader.cursor;
         char const* scrapKindBegin = savedCursor;
@@ -1988,11 +1872,11 @@
                 scrapKindEnd = reader.cursor-1;
                 break;
             }
-    
+
             if( !isalpha(c) )
                 break;
         }
-    
+
         MgScrapKind scrapKind = kScrapKind_Unknown;
         if( scrapKindEnd )
         {
@@ -2021,20 +1905,20 @@
         {
             reader.cursor = savedCursor;
         }
-    
+
         char const* scrapIdBegin = reader.cursor;
-    
+
         for(;;)
         {
             int c = MgGetChar(&reader);
             if( c == -1 ) break;
-    
+
             if( c == '|' )
             {
                 MgUnGetChar(&reader, c);
                 break;
             }
-    
+
             if( c == '>' )
             {
                 int d = MgGetChar(&reader);
@@ -2046,11 +1930,11 @@
                 }
             }
         }
-    
+
         char const* scrapIdEnd = reader.cursor;
         char const* scrapNameBegin = 0;
         char const* scrapNameEnd = 0;
-    
+
         int pipe = MgGetChar(&reader);
         if( pipe != '|' )
         {
@@ -2076,37 +1960,37 @@
             }
             scrapNameEnd = reader.cursor;
         }
-    
+
         if( MgGetChar(&reader) != '>' )
             return MG_FALSE;
         if( MgGetChar(&reader) != '>' )
             return MG_FALSE;
-    
+
         if( MgPeekChar(&reader) == '+' )
             MgGetChar(&reader);
         if( MgGetChar(&reader) != '=' )
             return MG_FALSE;
-    
+
         SkipWhiteSpace( &reader );
         if( MgGetChar(&reader) != -1 )
             return MG_FALSE;
-    
+
         TrimLeadingSpace(&scrapIdBegin, scrapIdEnd);
         TrimTrailingSpace(scrapIdBegin, &scrapIdEnd);
-    
+
         TrimLeadingSpace(&scrapNameBegin, scrapNameEnd);
         TrimTrailingSpace(scrapNameBegin, &scrapNameEnd);
-    
+
         *outScrapKind       = scrapKind;
         *outScrapIdBegin    = scrapIdBegin;
         *outScrapIdEnd      = scrapIdEnd;
         *outScrapNameBegin  = scrapNameBegin;
         *outScrapNameEnd    = scrapNameEnd;
-    
+
         return MG_TRUE;
     }
-    
-    
+
+
     MgElement* ParseCodeBlockBody(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -2118,7 +2002,7 @@
         // literate scrap introduction
         LineRange lineRange = inLineRange;
         MgLine* firstLine = GetLine( &lineRange );
-    
+
         MgScrapKind scrapKind = kScrapKind_Unknown;
         char const* scrapIdBegin    = 0;
         char const* scrapIdEnd      = 0;
@@ -2136,17 +2020,17 @@
         {
             UnGetLine( &lineRange, firstLine );
         }
-    
+
         MgElement* firstChild = ReadSpansInRange( context, inputFile, lineRange, kMgSpanFlags_CodeBlock );
         MgElement* codeBlock = MgCreateParentElement(
             kMgElementKind_CodeBlock,
             firstChild );
-    
+
         if( langBegin != langEnd )
         {
             MgAddAttribute( codeBlock, "class", MgMakeString( langBegin, langEnd ) );
         }
-    
+
         MgElement* element = codeBlock;
         if( scrapIdBegin != 0 )
         {
@@ -2162,39 +2046,39 @@
                 // \todo: check that we are the first!!!
                 scrapGroup->nameGroup->name = MgReadSpanElements(context, inputFile, firstLine, scrapName, kMgSpanFlags_Default);
             }
-    
+
             MgScrap* scrap = (MgScrap*) malloc(sizeof(MgScrap));
             scrap->fileGroup = scrapGroup;
             scrap->sourceLoc = MgGetSourceLoc( inputFile, firstLine, firstLine->text.begin );
             scrap->body = codeBlock;
             scrap->next = 0;
-                
+            
             MgAddScrapToFileGroup( scrapGroup, scrap );
-    
+
             element = MgCreateParentElement(
                 kMgElementKind_ScrapDef,
                 element );
-    
+
             MgAttribute* attr = MgAddCustomAttribute( element, "$scrap" );
             attr->scrap = scrap;
         }
-    
-    
+
+
         return element;
     }
-    
+
     char const* CheckIndentedCodeLine(
         MgLine* line )
     {
         // either a tab or four spaces
         MgReader reader;
         InitializeLineReader(&reader, line );
-    
+
         int c = MgGetChar( &reader );
         if( c == '\t' )
             return reader.cursor;
         MgUnGetChar( &reader, c );
-    
+
         for( int ii = 0; ii < 4; ++ii )
         {
             int d = MgGetChar( &reader );
@@ -2203,7 +2087,7 @@
         }
         return reader.cursor;
     }
-    
+
     MgBool CheckLiterateScrapIntroductionLine(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -2216,14 +2100,14 @@
         char const* scrapIdEnd      = 0;
         char const* scrapNameBegin  = 0;
         char const* scrapNameEnd    = 0;
-    
+
         return ParseLiterateScrapIntroduction(
             context, inputFile, text,
             &scrapKind,
             &scrapIdBegin,      &scrapIdEnd,
             &scrapNameBegin,    &scrapNameEnd );
     }
-    
+
     MgElement* ParseIndentedCode(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2231,13 +2115,13 @@
     {
         MgLine* firstLine = GetLine(ioLineRange);
         MgLine* lastLine = firstLine;
-    
+
         MgLine* line = firstLine;
         for(;;)
         {
             if( !line )
                 break;
-    
+
             char const* lineStart = CheckIndentedCodeLine(line);
             if( !lineStart )
             {
@@ -2246,7 +2130,7 @@
                 else
                     break; // end of the code block
             }
-    
+
             // if the line that starts the paragraph looks like a
             // literate scrap introduction `<< foo >>=`, then end
             // this code block so we can start a new one.
@@ -2255,44 +2139,44 @@
             {
                 break;
             }
-    
+
             // we are starting a paragraph within the code block
-    
+
             // continue consuming lines until we see an empty line
             while( line && !IsEmptyLine(line) )
             {
                 lineStart = CheckIndentedCodeLine(line);
                 if(!lineStart)
                     break; // end of the code element...
-    
+
                 line->text.begin = lineStart;
                 lastLine = line;
                 line = GetLine( ioLineRange );
             }
-    
+
             // continue consuming lines until we see a non-empty line
             while( line && IsEmptyLine(line) )
             {
                 line = GetLine(ioLineRange);
             }
         }
-    
+
         LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
+
         return ParseCodeBlockBody(
             context,
             inputFile,
             innerRange,
             0, 0 ); // no way to pass in a language name
     }
-    
+
     char const* CheckBracketedCodeLine(
         MgLine* line,
         char    c )
     {
         MgReader reader;
         InitializeLineReader( &reader, line );
-    
+
         for( int ii = 0; ii < 3; ++ii )
         {
             int d = MgGetChar( &reader );
@@ -2301,7 +2185,7 @@
         }
         return reader.cursor;
     }
-    
+
     MgElement* ParseBracketedCode(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2313,10 +2197,10 @@
         if( !startLang )
             return 0;
         openLine->text.begin = startLang;
-    
+
         MgLine* firstLine = 0;
         MgLine* lastLine = 0;
-    
+
         for(;;)
         {
             MgLine* line = GetLine( ioLineRange );
@@ -2328,20 +2212,20 @@
                 // \todo: what if there is text after the backticks?
                 // for now, we process it as an other text...
                 line->text.begin = end;
-    
+
                 break;
             }
-    
+
             if( !firstLine )
                 firstLine = line;
             lastLine = line;
         }
-    
+
         // the span *might* be empty... just in case
         LineRange innerRange = { 0, 0 };
         if( lastLine )
             innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
+
         // `openLine` begin/end gives us the language marker, if any
         return ParseCodeBlockBody(
             context,
@@ -2350,7 +2234,7 @@
             openLine->text.begin,
             openLine->text.end );
     }
-    
+
     MgElement* ParseBracketedCode_Backtick(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2358,7 +2242,7 @@
     {
         return ParseBracketedCode( context, inputFile, ioLineRange, '`' );
     }
-    
+
     MgElement* ParseBracketedCode_Tilde(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2366,7 +2250,7 @@
     {
         return ParseBracketedCode( context, inputFile, ioLineRange, '~' );
     }
-    
+
     MgElement* ParseHorizontalRule(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -2374,18 +2258,18 @@
         char            c )
     {
         MgLine* firstLine = GetLine(ioLineRange);
-    
+
         MgReader reader;
         InitializeLineReader(&reader, firstLine);
-    
+
         int count = 0;
         for(;;)
         {
             int d = MgGetChar(&reader);
-    
+
             if( d == -1 )
                 break;
-    
+
             if( d == c )
             {
                 ++count;
@@ -2397,17 +2281,17 @@
                 return 0;
             }
         }
-    
+
         if( count < 3 )
             return 0;
-    
+
         Snip( firstLine, firstLine, ioLineRange );
-    
+
         return MgCreateLeafElement(
             kMgElementKind_HorizontalRule,
             MgMakeString(MG_NULL, MG_NULL) );
     }
-    
+
     MgElement* ParseHorizontalRule_Hypen(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2415,7 +2299,7 @@
     {
         return ParseHorizontalRule( context, inputFile, ioLineRange, '-' );
     }
-    
+
     MgElement* ParseHorizontalRule_Asterisk(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2423,7 +2307,7 @@
     {
         return ParseHorizontalRule( context, inputFile, ioLineRange, '*' );
     }
-    
+
     MgElement* ParseHorizontalRule_Underscore(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2431,13 +2315,13 @@
     {
         return ParseHorizontalRule( context, inputFile, ioLineRange, '_' );
     }
-    
+
     char const* CheckUnorderedListLine(
         MgLine* line )
     {
         MgReader reader;
         InitializeLineReader( &reader, line );
-    
+
         // may have up to three leading spaces
         for(int ii = 0; ii < 3; ++ii )
         {
@@ -2448,7 +2332,7 @@
                 break;
             }
         }
-    
+
         int c = MgGetChar( &reader );
         switch( c )
         {
@@ -2456,11 +2340,11 @@
         case '+':
         case '-':
             break;
-    
+
         default:
             return 0;
         }
-    
+
         // skip white-space after the bullet
         for(;;)
         {
@@ -2471,16 +2355,16 @@
                 break;
             }
         }
-    
+
         return reader.cursor;
     }
-    
+
     char const* CheckOrderedListLine(
         MgLine* line )
     {
         MgReader reader;
         InitializeLineReader( &reader, line );
-    
+
         // may have up to three leading spaces
         for(int ii = 0; ii < 3; ++ii )
         {
@@ -2491,11 +2375,11 @@
                 break;
             }
         }
-    
+
         int c = MgGetChar( &reader );
         if( !isdigit(c) )
             return 0;
-    
+
         // skip remaining digits
         for(;;)
         {
@@ -2506,12 +2390,12 @@
                 break;
             }
         }
-    
+
         // expect a dot
         int e = MgGetChar( &reader );
         if( e != '.' )
             return 0;
-    
+
         // skip white-space after the dot
         for(;;)
         {
@@ -2522,16 +2406,16 @@
                 break;
             }
         }
-    
+
         return reader.cursor;
     }
-    
+
     char const* CheckListLineLeadingSpace(
         MgLine* line )
     {
         MgReader reader;
         InitializeLineReader( &reader, line );
-    
+
         for( int ii = 0; ii < 4; ++ii )
         {
             int c = MgGetChar( &reader );
@@ -2545,7 +2429,7 @@
         }
         return reader.cursor;
     }
-    
+
     MgElement* ParseListItem(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2554,19 +2438,19 @@
     {
         MgLine* firstLine = GetLine( ioLineRange );
         MgLine* lastLine = firstLine;
-    
+
         if( !firstLine )
             return 0;
-    
+
         // check the first line
         char const* lineStart = checkLineFunc(firstLine);
         if( !lineStart )
             return 0;
         firstLine->text.begin = lineStart;
-    
+
         // read subsequent lines of the item, until
         MgLine* line = firstLine;
-    
+
         for(;;)
         {
             line = GetLine( ioLineRange );
@@ -2575,29 +2459,29 @@
                 // we see an empty line, or
                 if( IsEmptyLine(line) )
                     break;
-    
+
                 // a line that starts a new item
                 // \todo: does this need to consider other list flavors?
                 lineStart = checkLineFunc(line);
                 if(lineStart)
                     break;
-    
+
                 lineStart = CheckListLineLeadingSpace(line);
                 if( lineStart )
                     line->text.begin = lineStart;
-    
+
                 // \todo: need to trim front of line...
-    
+
                 lastLine = line;
                 line = GetLine(ioLineRange);
             }
-    
+
             // continue consuming lines until we see a non-empty line
             while( line && IsEmptyLine(line) )
             {
                 line = GetLine(ioLineRange);
             }
-    
+
             // if the next line is indented appropriately for line
             // continuation... we continue building out the same item...
             if( line )
@@ -2612,16 +2496,16 @@
             }
             break;
         }
-    
+
         LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
+
         MgElement* firstChild = ReadElementsInRange( context, inputFile, innerRange );
-    
+
         return MgCreateParentElement(
             kMgElementKind_ListItem,
             firstChild );
     }
-    
+
     MgElement* ParseList(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2631,24 +2515,24 @@
     {
         MgElement* firstItem = ParseListItem( context, inputFile, ioLineRange, checkLineFunc );
         MgElement* lastItem = firstItem;
-    
+
         if( !firstItem ) return 0;
-    
+
         for(;;)
         {
             MgElement* item = ParseListItem( context, inputFile, ioLineRange, checkLineFunc );
             if( !item )
                 break;
-    
+
             lastItem->next = item;
             lastItem = item;
         }
-    
+
         return MgCreateParentElement(
             kind,
             firstItem );
     }
-    
+
     MgElement* ParseOrderedList(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2660,7 +2544,7 @@
             kMgElementKind_OrderedList,
             &CheckOrderedListLine );
     }
-    
+
     MgElement* ParseUnorderedList(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2672,7 +2556,7 @@
             kMgElementKind_UnorderedList,
             &CheckUnorderedListLine );
     }
-    
+
     void SkipEmptyLines(
         LineRange*  ioLineRange )
     {
@@ -2683,11 +2567,11 @@
                 return;
             if( !IsEmptyLine(begin) )
                 return;
-                
+            
             ioLineRange->begin = begin + 1;
         }
     }
-    
+
     MgElement* ParseDefaultParagraph(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2695,9 +2579,9 @@
     {
         // an ordinary text paragraph will consume
         // everything up to the next blank line...
-    
+
         MgLine* firstLine = GetLine( ioLineRange );
-    
+
         MgLine* lastLine = firstLine;
         for(;;)
         {
@@ -2707,18 +2591,18 @@
                 UnGetLine(ioLineRange, line);
                 break;
             }
-    
+
             lastLine = line;
         }
-    
+
         LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
+
         MgElement* firstChild = ReadSpansInRange( context, inputFile, innerRange, kMgSpanFlags_Default );
         return MgCreateParentElement(
             kMgElementKind_Paragraph,
             firstChild );
     }
-    
+
     MgElement* ParseBlockLevelHtml(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2726,24 +2610,24 @@
     {
         MgLine* firstLine = GetLine( ioLineRange );
         MgLine* lastLine = firstLine;
-    
+
         MgReader reader;
         InitializeLineReader( &reader, firstLine );
-    
+
         int c = MgGetChar( &reader );
         if( c != '<' ) return MG_NULL;
-    
+
         int d = MgGetChar( &reader );
         if( !isalpha(d) ) return MG_NULL;
-    
+
         for(;;)
         {
             MgLine* line = GetLine( ioLineRange );
             if( !line )
                 break;
-    
+
             lastLine = line;
-    
+
             InitializeLineReader( &reader, line );
             int e = MgGetChar( &reader );
             if( e != '<' )
@@ -2754,18 +2638,18 @@
             int g = MgGetChar( &reader );
             if( !isalpha(g) )
                 continue;
-    
+
             break;
         }
-    
+
         LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
+
         MgElement* firstChild = ReadSpansInRange( context, inputFile, innerRange, kMgSpanFlags_HtmlBlock );
         return MgCreateParentElement(
             kMgElementKind_HtmlBlock,
             firstChild );
     }
-    
+
     MgBool ParseLinkDefinitionTitle(
         MgReader*   reader,
         char const**    outTitleBegin,
@@ -2785,19 +2669,19 @@
             closeTitle = ')';
             break;
         }
-    
+
         char const* titleBegin = reader->cursor;
         char const* titleEnd = MgFindMatching(reader, closeTitle, 1);
         if( !titleEnd )
             return MG_FALSE;
-    
+
         // \todo: enforce that we find end of line?
-    
+
         *outTitleBegin = titleBegin;
         *outTitleEnd = titleEnd;
         return MG_TRUE;
     }
-    
+
     MgElement* ParseLinkDefinition(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -2805,10 +2689,10 @@
     {
         MgString id;
         MgLine* firstLine = GetLine(ioLineRange);
-    
+
         MgReader reader;
         InitializeLineReader(&reader, firstLine);
-    
+
         // skip up to three spaces
         for(int ii = 0; ii < 3; ++ii)
         {
@@ -2819,31 +2703,31 @@
                 break;
             }
         }
-    
+
         // expect a '['
         int openBrace = MgGetChar(&reader);
         if( openBrace != '[' )
             return 0;
-    
+
         id = MgFindMatchingString(&reader, ']', 1);
         if( !id.end )
             return 0;
-    
+
         // expect a ':'
         int colon = MgGetChar(&reader);
         if( colon != ':' )
             return 0;
-    
+
         // skip any white space
         SkipWhiteSpace(&reader);
-    
+
         // allow one '<' before the link
         int leftAngle = MgGetChar(&reader);
         if( leftAngle != '<' )
         {
             MgUnGetChar(&reader, leftAngle);
         }
-    
+
         // read the URL (assume it continues until white-space)
         char const* urlBegin = reader.cursor;
         char const* urlEnd = reader.cursor;
@@ -2857,7 +2741,7 @@
             }
             urlEnd = reader.cursor;
         }
-    
+
         // expect an opening '<' to be matched by '>'
         if( leftAngle == '<' )
         {
@@ -2865,11 +2749,11 @@
             if( rightAngle != '>' )
                 return 0;
         }
-    
+
         // \todo: should we check that the URL is non-empty?
-    
+
         SkipWhiteSpace(&reader);
-    
+
         // now look for the title
         char const* titleBegin = 0;
         char const* titleEnd = 0;
@@ -2885,7 +2769,7 @@
             MgLine* secondLine = GetLine(ioLineRange);
             InitializeLineReader(&reader, secondLine);
             SkipWhiteSpace(&reader);
-    
+
             if( !ParseLinkDefinitionTitle(
                 &reader,
                 &titleBegin,
@@ -2894,30 +2778,30 @@
                 UnGetLine(ioLineRange, secondLine);
             }
         }
-    
+
         MgReferenceLink* ref = MgFindOrCreateReferenceLink(
             inputFile,
             id );
-    
+
         // \todo: how to handle redefinition?
         ref->url.begin = urlBegin;
         ref->url.end = urlEnd;
         ref->title.begin = titleBegin;
         ref->title.end = titleEnd;
-    
+
         // we have to return a non-NULL element to indicate
         // a successful parse...
         return MgCreateLeafElement(
             kMgElementKind_Text,
             MgMakeString(MG_NULL, MG_NULL));
     }
-    
+
     int CountTableLinePipes(
         MgLine*   line)
     {
         MgReader reader;
         InitializeLineReader(&reader, line);
-    
+
         int pipeCount = 0;
         for( ;; )
         {
@@ -2931,7 +2815,7 @@
         }
         return pipeCount;
     }
-    
+
     MgElement* ParseTableCell(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -2950,66 +2834,66 @@
                 MgUnGetChar(reader, c);
                 break;
             }
-    
+
             // allow escapes?
             if( c == '\\' )
             {
                 int d = MgGetChar(reader);
             }
         }
-    
+
         MgElement* firstChild = MgReadSpanElements(context, inputFile, line, MgMakeString(cellBegin, cellEnd), kMgSpanFlags_Default);
         return MgCreateParentElement(
             kind,
             firstChild );
     }
-    
+
     MgBool ParseTableAlignments(
         MgLine* line)
     {
         MgReader reader;
         InitializeLineReader(&reader, line);
-    
+
         int pipeCount = 0;
         int columnCount = 0;
         for( ;; )
         {
             MgBool leftJustify = MG_FALSE;
             MgBool rightJustify = MG_FALSE;
-    
+
             if( MgPeekChar(&reader) == '|' )
             {
                 MgGetChar(&reader);
                 ++pipeCount;
             }
-    
+
             if( MgPeekChar(&reader) == -1 )
                 break;
-    
+
             ++columnCount;
             if( MgPeekChar(&reader) == ':' )
             {
                 MgGetChar(&reader);
                 leftJustify = MG_TRUE;
             }
-    
+
             while( MgPeekChar(&reader) == '-' )
                 MgGetChar(&reader);
-    
+
             if( MgPeekChar(&reader) == ':' )
             {
                 MgGetChar(&reader);
                 rightJustify = MG_TRUE;
             }
-    
+
             int next = MgPeekChar(&reader);
             if( next != -1 && next != '|' )
                 return MG_FALSE;
         }
-    
+
         return pipeCount != 0;
     }
-    
+
     MgElement* ParseTableRow(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -3018,7 +2902,7 @@
     {
         MgReader reader;
         InitializeLineReader( &reader, line );
-    
+
         // start reading cells
         MgElement* firstCell = 0;
         MgElement* lastCell = 0;
@@ -3030,14 +2914,14 @@
             {
                 MgGetChar(&reader);
             }
-    
+
             // end of line?
             //
             // note that this always treats a pipe at the end
             // of the line as a decorative pipe
             if( MgPeekChar(&reader) == -1 )
                 break;
-    
+
             MgElement* cell = ParseTableCell(context, inputFile, line, &reader, cellKind);
             if( lastCell )
             {
@@ -3049,12 +2933,12 @@
             }
             lastCell = cell;
         }
-    
+
         return MgCreateParentElement(
             kMgElementKind_TableRow,
             firstCell );
     }
-    
+
     MgElement* ParseTable(
         MgContext*    context,
         MgInputFile*  inputFile,
@@ -3065,23 +2949,23 @@
         MgLine* firstLine       = MG_NULL;
         MgLine* lastLine        = MG_NULL;
         LineRange innerRange;
-    
+
         int headerPipes = CountTableLinePipes( headerLine );
         if( headerPipes == 0 )
             return 0;
-    
+
         // \todo: how to do table cell alignment?
         alignmentLine = GetLine( ioLineRange );
         if( !alignmentLine || !ParseTableAlignments(alignmentLine) )
             return 0;
-    
+
         // find successive lines that might be table rows
         for(;;)
         {
             MgLine* line = GetLine( ioLineRange );
             if( !line )
                 break;
-    
+
             int linePipes = CountTableLinePipes( line );
             if( linePipes == 0 )
             {
@@ -3095,9 +2979,9 @@
         // we need at least one line
         if( !firstLine )
             return 0;
-    
+
         innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
+
         MgElement* firstRow = ParseTableRow(context, inputFile, headerLine, kMgElementKind_TableHeader);
         MgElement* lastRow = firstRow;
         for( MgLine* line = innerRange.begin; line != innerRange.end; ++line )
@@ -3106,12 +2990,12 @@
             lastRow->next = row;
             lastRow = row;
         }
-    
+
         return MgCreateParentElement(
             kMgElementKind_Table,
             firstRow );
     }
-    
+
     MgElement* ParseMetaData(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -3120,55 +3004,55 @@
         MgLine* firstLine = GetLine( ioLineRange );
         if( !firstLine )
             return MG_NULL;
-    
+
         MgReader reader;
         InitializeLineReader( &reader, firstLine );
-    
+
         // meta-data line can't start with whitespace
         if( isspace(MgPeekChar(&reader)) )
             return MG_NULL;
-    
+
         // read until a ':'
         MgString key = MgFindMatchingString(&reader, ':', 1);
         if( !key.end )
             return MG_NULL;
-    
+
         MgString value = MgMakeString(reader.cursor, firstLine->text.end);
         TrimTrailingSpace(value.begin, &value.end);
         TrimLeadingSpace(&value.begin, value.end);
-    
+
         MgElement* firstChild = MgCreateLeafElement(kMgElementKind_Text, value);
         MgElement* lastChild = firstChild;
-    
+
         for(;;)
         {
             MgLine* line = GetLine( ioLineRange );
             if( !line )
                 break;
-    
+
             InitializeLineReader( &reader, line );
             if( !isspace(MgPeekChar(&reader)) )
             {
                 UnGetLine( ioLineRange, line );
                 break;
             }
-    
+
             value = line->text;
             TrimTrailingSpace(value.begin, &value.end);
             TrimLeadingSpace(&value.begin, value.end);
-    
+
             MgElement* child = MgCreateLeafElement(kMgElementKind_Text, value);
             lastChild->next = child;
             lastChild = child;
         }
-    
+
         MgElement* element = MgCreateParentElement(
             kMgElementKind_MetaData,
             firstChild );
         MgAddAttribute(element, "$key", key);
         return element;
     }
-    
+
     MgElement* ReadElement(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -3177,7 +3061,7 @@
         // earlier code has skipped any empty lines,
         // so we know this line represents the start
         // of some kind of block-level structure.
-    
+
         static const ParseFunc parseFuncs[] = {
             &ParseLinkDefinition,
             &ParseTable,
@@ -3203,7 +3087,7 @@
             // so that we always have a fallback
             &ParseDefaultParagraph,
         };
-    
+
         ParseFunc const* funcCursor = &parseFuncs[0];
         for(;;)
         {
@@ -3217,12 +3101,12 @@
             ++funcCursor;
         }
     }
-    
+
     /*
     Parse block-level elements from Markdown source, in the range between
     `beginLines` and `endLines`, which should be lines in the input file
     `inputFile` loaded in `context`.
-    
+
     Returns the first element parsed, which is the start of a linked list
     of elements (each of which may have its own child elements).
     */
@@ -3233,10 +3117,10 @@
         MgLine*         endLines )
     {
         // TODO: parse meta-data elements until no more matches
-    
+
         MgElement* firstElement = MG_NULL;
         MgElement* lastElement  = MG_NULL;
-    
+
         LineRange lineRange = { beginLines, endLines };
         firstElement = ReadElement( context, inputFile, &lineRange );
         lastElement = firstElement;
@@ -3245,21 +3129,21 @@
             SkipEmptyLines(&lineRange);
             if( lineRange.begin == lineRange.end )
                 break;
-    
+
             MgElement* element = ReadElement( context, inputFile, &lineRange );
             lastElement->next = element;
             lastElement = element;
-    
+
             // The reading code may have read a sequence of blocks, rather
             // than a single block. We need to make sure to advance our
             // "cursor" to the real end of the list.
             while( lastElement->next )
                 lastElement = lastElement->next;
         }
-    
+
         return firstElement;
     }
-    
+
     MgElement* ReadElementsInRange(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -3271,7 +3155,7 @@
             lineRange.begin,
             lineRange.end );
     }
-    
+
     /*
     Like `MgParseBlockElements`, but only handles meta-data elements, and
     not general Markdown document content.
@@ -3284,14 +3168,14 @@
     {
         MgElement* firstElement = MG_NULL;
         MgElement* lastElement  = MG_NULL;
-    
+
         LineRange lineRange = { beginLines, endLines };
         for(;;)
         {
             SkipEmptyLines(&lineRange);
             if( lineRange.begin == lineRange.end )
                 break;
-    
+
             LineRange savedLineRange = lineRange;
             MgElement* element = ParseMetaData(context, inputFile, &lineRange);
             if( !element )
@@ -3302,7 +3186,7 @@
                 ++lineRange.begin;            
                 continue;
             }
-    
+
             if( lastElement )
             {
                 lastElement->next = element;
@@ -3313,34 +3197,34 @@
             }
             lastElement = element;
         }
-    
+
         return firstElement;    
     }
-    
-    
+
+
     /*
     Export
     ------
     */
-    
+
     /*
     ### `MgWriter` ###
-    
+
     Interface for writing characters. Currently supports writing to memory
     buffers, along with a "writer" that simply counts characters. Other writers
     would be easy to define (just requires a `MgPutChar` callback).
     */
-    
+
     typedef struct MgWriterT MgWriter;
-    
+
     typedef void (*MgPutCharFunc)( MgWriter*, int );
-    
+
     struct MgWriterT
     {
         MgPutCharFunc   putCharFunc;
         void*           userData;
     };
-    
+
     /*
     Set up a writer that calls the `putCharFunc` callback for each output
     character, passing the specified `userData` as an extra argument.
@@ -3353,10 +3237,10 @@
         writer->putCharFunc = putCharFunc;
         writer->userData    = userData;
     }
-    
+
     /*
     Write a single character to a writer.
-    
+
     Note: this function takes an `int` paramter, but only `char` values
     should be passed in (all other values will be cast to `char`).
     */
@@ -3366,7 +3250,7 @@
     {
         writer->putCharFunc( writer, value );
     }
-    
+
     /*
     Write all characters in range starting at pointer `begin` up to
     the pointer `end` (not inclusive).
@@ -3380,7 +3264,7 @@
         while( cursor != end )
             MgPutChar( writer, *cursor++ );
     }
-    
+
     /*
     Write all characters in `string`.
     */
@@ -3390,7 +3274,7 @@
     {
         MgWriteRange( writer, string.begin, string.end );
     }
-    
+
     /*
     Write the null-terminated string `string`.
     */
@@ -3400,11 +3284,11 @@
     {
         MgWriteRange(writer, text, text + strlen(text));
     }
-    
+
     /*
     #### Memory Writer ####
     */
-    
+
     void MemoryWriter_PutChar(
         MgWriter* writer,
         int     value )
@@ -3413,7 +3297,7 @@
         *cursor++ = (char) value;
         writer->userData = cursor;
     }
-    
+
     /*
     Initialize a writer that will output data to the specified `buffer`.
     It is the responsibility of the user to allocate the right amount of
@@ -3428,11 +3312,11 @@
             &MemoryWriter_PutChar,
             data );
     }
-    
+
     /*
     #### Counting Writer ####
     */
-    
+
     void CountingWriter_PutChar(
         MgWriter* writer,
         int     value )
@@ -3440,7 +3324,7 @@
         int* counter = (int*) writer->userData;
         ++(*counter);
     }
-    
+
     /*
     Initialize a writer that will simply count the number of character written.
     Once you've finished writing your data, the provided `counter` will contain
@@ -3456,12 +3340,12 @@
             counter );
         *counter = 0;
     }
-    
-    
+
+
     /*
     ### Utilities for Export ###
     */
-    
+
     /*
     Find an existing attribute with the given `id`.
     Return NULL if not found.
@@ -3478,7 +3362,7 @@
         }
         return 0;
     }
-    
+
     MgBool TextIsSameAsFileOnDisk(
         MgString  text,
         char const* filePath)
@@ -3487,9 +3371,9 @@
         FILE* file = fopen(filePath, "rb");
         if( !file )
             return MG_FALSE;
-    
+
         MgInitializeStringReader(&reader, text);
-    
+
         for(;;)
         {
             int c = fgetc(file);
@@ -3498,12 +3382,12 @@
             {
                 return MG_FALSE;
             }
-    
+
             if( c == -1 )
                 return MG_TRUE;
         }
     }
-    
+
     /*
     Write the string `text` to the file specified by `path`, but first check
     whether there is already a file on disk with that path with exactly the same
@@ -3519,36 +3403,36 @@
     //        fprintf(stderr, "Skipping export of \"%s\"\n", nameBuffer);
             return;
         }
-    
+
         FILE* file = fopen(filePath, "wb");
         if( !file )
         {
             fprintf(stderr, "Failed to open \"%s\" for writing\n", filePath);
             return;
         }
-    
+
         fwrite(text.begin, 1, text.end - text.begin, file);
-    
+
         fclose(file);
     }
-    
-    
+
+
     /*
     ### Code Export ###
     */
-    
+
     void ExportScrapFileGroup(
         MgContext*        context,
         MgScrapFileGroup* scrapFileGroup,
         MgWriter*         writer );
-    
+
     void ExportScrapElements(
         MgContext*  context,
         MgScrap*    scrap,
         MgElement*  firstElement,
         MgWriter*   writer,
         int         indent );
-    
+
     void WriteInt(
         MgWriter*     writer,
         int         value)
@@ -3560,19 +3444,19 @@
         char buffer[kBufferSize];
         char* cursor = &buffer[kBufferSize];
         *(--cursor) = 0;
-    
+
         int remaining = value;
         do
         {
             int digit = remaining % 10;
             remaining = remaining / 10;
-    
+
             *(--cursor) = '0' + digit;
         } while( remaining != 0 );
-    
+
         MgWriteCString(writer, cursor);
     }
-    
+
     static void Indent(
         MgWriter*   writer,
         int         indent )
@@ -3580,7 +3464,7 @@
         for( int ii = 1; ii < indent; ++ii )
             MgWriteCString(writer, " ");    
     }
-    
+
     void EmitLineDirectiveAndIndent(
         MgWriter*     writer,
         MgInputFile*  inputFile,
@@ -3591,10 +3475,10 @@
         MgWriteCString(writer, " \"");
         MgWriteCString(writer, inputFile->path);
         MgWriteCString(writer, "\"\n");
-    
+
         Indent( writer, loc.col );
     }
-    
+
     void ExportScrapElement(
         MgContext*  context,
         MgScrap*    scrap,
@@ -3609,12 +3493,12 @@
             MgWriteString(writer, element->text);
             ExportScrapElements(context, scrap, element->firstChild, writer, indent);
             break;
-    
+
         case kMgElementKind_NewLine:
             MgWriteString(writer, element->text);
             Indent( writer, indent );
             break;
-    
+
         case kMgElementKind_LessThanEntity:
             MgWriteCString(writer, "<");
             break;
@@ -3624,7 +3508,7 @@
         case kMgElementKind_AmpersandEntity:
             MgWriteCString(writer, "&");
             break;
-    
+
         case kMgElementKind_ScrapRef:
             {
                 MgScrapFileGroup* scrapGroup = MgFindAttribute(element, "$scrap-group")->scrapFileGroup;
@@ -3633,13 +3517,13 @@
                 EmitLineDirectiveAndIndent(writer, scrap->fileGroup->inputFile, resumeLoc);
             }
             break;
-    
+
         default:
             assert(MG_FALSE);
             break;
         }
     }
-    
+
     void ExportScrapElements(
         MgContext*  context,
         MgScrap*    scrap,
@@ -3650,7 +3534,7 @@
         for( MgElement* element = firstElement; element; element = element->next )
             ExportScrapElement( context, scrap, element, writer, indent );
     }
-    
+
     void ExportScrapText(
         MgContext*    context,
         MgScrap*      scrap,
@@ -3664,8 +3548,8 @@
             writer,
             scrap->sourceLoc.col );
     }
-    
-    
+
+
     void ExportScrapFileGroupImpl(
         MgContext*        context,
         MgScrapFileGroup* fileGroup,
@@ -3678,7 +3562,7 @@
             scrap = scrap->next;
         }
     }
-    
+
     void ExportScrapNameGroupImpl(
         MgContext*        context,
         MgScrapNameGroup* nameGroup,
@@ -3691,8 +3575,8 @@
             fileGroup = fileGroup->next;
         }
     }
-    
-    
+
+
     void ExportScrapFileGroup(
         MgContext*        context,
         MgScrapFileGroup* fileGroup,
@@ -3703,25 +3587,25 @@
         default:
             assert(0);
             break;
-    
+
         case kScrapKind_GlobalMacro:
         case kScrapKind_OutputFile:
             ExportScrapNameGroupImpl(context, fileGroup->nameGroup, writer);
             break;
-    
+
         case kScrapKind_Unknown:
         case kScrapKind_LocalMacro:
             ExportScrapFileGroupImpl(context, fileGroup, writer);
             break;
         }
     }
-    
+
     void MgWriteCodeFile(
         MgContext*          context,
         MgScrapNameGroup*   codeFile )
     {
         MgString id = codeFile->id;
-    
+
         // \todo: alloca or malloc the name buffer when required...
         char nameBuffer[1024];
         char* writeCursor = &nameBuffer[0];
@@ -3732,25 +3616,25 @@
             *writeCursor++ = *readCursor++;
         }
         *writeCursor++ = 0;
-    
+
         MgWriter writer;
-    
+
         // now construct the outputString
         int counter = 0;
         MgInitializeCountingWriter( &writer, &counter );
         ExportScrapNameGroupImpl( context, codeFile, &writer );
-    
+
         int outputSize = counter;
         char* outputBuffer = (char*) malloc(outputSize + 1);
         outputBuffer[outputSize] = 0;
-            
+        
         MgInitializeMemoryWriter( &writer, outputBuffer );
         ExportScrapNameGroupImpl( context, codeFile, &writer );
-    
+
         MgString outputText = MgMakeString( outputBuffer, outputBuffer + outputSize );
         MgWriteTextToFile(outputText, nameBuffer);
     }
-    
+
     MgScrapNameGroup* MgGetFirstCodeFile(
         MgContext* context)
     {
@@ -3759,7 +3643,7 @@
             group = group->next;
         return group;
     }
-    
+
     MgScrapNameGroup* MgGetNextCodeFile(
         MgScrapNameGroup* codeFile)
     {
@@ -3768,7 +3652,7 @@
             group = group->next;
         return group;
     }
-    
+
     void MgWriteAllCodeFiles(
         MgContext* context)
     {
@@ -3779,20 +3663,20 @@
             codeFile = MgGetNextCodeFile( codeFile );
         }
     }
-    
-    
-    
-    
-    
+
+
+
+
+
     /*
     ### HTML Export ###
     */
-    
+
     void WriteElement(
         MgContext*    context,
         MgElement*  pp,
         MgWriter*     output );
-    
+
     void WriteAttributes(
         MgElement* pp,
         MgWriter*     output )
@@ -3801,7 +3685,7 @@
         {
             if( attr->id.begin[0] == '$' )
                 continue;
-    
+
             MgWriteCString(output, " ");
             MgWriteString( output, attr->id );
             MgWriteCString(output, "=\"");
@@ -3809,7 +3693,7 @@
             MgWriteCString(output, "\"");
         }
     }
-    
+
     void WriteElements(
         MgContext*  context,
         MgElement*  firstElement,
@@ -3820,7 +3704,7 @@
             WriteElement( context, element, writer );
         }
     }
-    
+
     void WriteScrapGroupName(
         MgContext*        context,
         MgWriter*         writer,
@@ -3834,9 +3718,9 @@
         {
             MgWriteString(writer, scrapGroup->id);
         }
-    
+
     }
-    
+
     void WriteElement(
         MgContext*    context,
         MgElement*  pp,
@@ -3849,7 +3733,7 @@
             fprintf(stderr, "unknown: %d\n", kind);
             assert(0);
             break;
-    
+
         case kMgElementKind_Table:
             MgWriteCString(output, "<table>");
             break;
@@ -3862,7 +3746,7 @@
         case kMgElementKind_TableCell:
             MgWriteCString(output, "<td>");
             break;
-    
+
         case kMgElementKind_LessThanEntity:
             MgWriteCString(output, "&lt;");
             break;
@@ -3872,12 +3756,12 @@
         case kMgElementKind_AmpersandEntity:
             MgWriteCString(output, "&amp;");
             break;
-    
+
         case kMgElementKind_Text:
         case kMgElementKind_NewLine:
         case kMgElementKind_HtmlBlock:
             break;
-    
+
         case kMgElementKind_Link:
             {
                 MgWriteCString(output, "<a");
@@ -3967,16 +3851,16 @@
             MgWriteCString(output, ">");
             break;
         }
-    
+
         MgWriteString(output, pp->text);
         WriteElements(context, pp->firstChild, output);
-    
+
         switch( kind )
         {
         default:
             assert(0);
             break;
-    
+
         case kMgElementKind_Table:
             MgWriteCString(output, "</table>");
             break;
@@ -3989,12 +3873,12 @@
         case kMgElementKind_TableCell:
             MgWriteCString(output, "</td>");
             break;
-    
+
         case kMgElementKind_LessThanEntity:
         case kMgElementKind_GreaterThanEntity:
         case kMgElementKind_AmpersandEntity:
             break;
-    
+
         case kMgElementKind_Text:
         case kMgElementKind_NewLine:
         case kMgElementKind_HtmlBlock:
@@ -4059,11 +3943,11 @@
             MgWriteCString(output, ">");
             break;
         }
-    
+
     }
-    
+
     //
-    
+
     static void WriteToFile(
         FILE* file,
         char const* begin,
@@ -4071,14 +3955,14 @@
     {
         fwrite(begin, 1, end-begin, file);
     }
-    
+
     static void MgWriteElementText(
         MgElement*  element,
         MgWriter*   writer )
     {
         // TODO: some elements need special handling here...
         MgWriteString( writer, element->text );
-    
+
         MgElement* child = element->firstChild;
         while( child )
         {
@@ -4086,59 +3970,59 @@
             child = child->next;
         }
     }
-    
+
     MgElement* MgFindMetaDataInFile(
         MgInputFile*    file,
         const char*     key )
     {
         MgString keyString = MgTerminatedString(key);
-    
+
         MgElement* element = file->firstElement;
         for(; element; element = element->next)
         {
             if( element->kind != kMgElementKind_MetaData )
                 continue;
-    
+
             MgAttribute* keyAttr = MgFindAttribute(element, "$key");
             if( !keyAttr )
                 continue;
-    
+
             if( !MgStringsAreEqualNoCase(keyString, keyAttr->val) )
                 continue;
-    
+
             return element;
         }
-    
+
         return MG_NULL;
     }
-    
-    
-    
+
+
+
     MgElement* MgFindMetaData(
         MgContext*      context,
         MgInputFile*    inputFile,
         const char*     key )
     {
         MgElement* element = MG_NULL;
-    
+
         // look for file-specific meta-data
         element = MgFindMetaDataInFile( inputFile, key );
         if( element ) return element;
-    
+
         // look for generic meta-data
         if( context->metaDataFile )
         {
             element = MgFindMetaDataInFile( context->metaDataFile, key );
             if( element ) return element;        
         }
-    
+
         return MG_NULL;
     }
-    
+
     typedef void (*MgMetaDataFunc)(
         MgElement*  metaData,
         void*       userData );
-    
+
     void MgForEachMetaDataInFile(
         MgInputFile*    file,
         const char*     key,
@@ -4146,24 +4030,24 @@
         void*           userData )
     {
         MgString keyString = MgTerminatedString(key);
-    
+
         MgElement* element = file->firstElement;
         for(; element; element = element->next)
         {
             if( element->kind != kMgElementKind_MetaData )
                 continue;
-    
+
             MgAttribute* keyAttr = MgFindAttribute(element, "$key");
             if( !keyAttr )
                 continue;
-    
+
             if( !MgStringsAreEqualNoCase(keyString, keyAttr->val) )
                 continue;
-    
+
             func( element, userData );
         }
     }
-    
+
     void MgForEachMetaData(
         MgContext*      context,
         MgInputFile*    file,
@@ -4174,11 +4058,11 @@
         // generic meta-data first
         if( context->metaDataFile )
             MgForEachMetaDataInFile( context->metaDataFile, key, func, userData );
-    
+
         // then file-specific meta-data
         MgForEachMetaDataInFile( file, key, func, userData );
     }
-    
+
     void MgCssMetaDataCallback(
         MgElement*  cssElement,
         void*       userData )
@@ -4188,7 +4072,7 @@
         MgWriteElementText(cssElement, writer);
         MgWriteCString(writer, "'>\n");    
     }
-    
+
     static MgElement* MgFindTitleElement(
         MgElement* firstElement )
     {
@@ -4206,11 +4090,11 @@
             case kMgElementKind_Header5:
             case kMgElementKind_Header6:
                 break;
-    
+
             default:
                 continue; // only consider headers
             }
-    
+
             // here we rely on the fact that the header element
             // kinds are defined to have ascending order in the enum...
             if( !bestElement || bestElement->kind > element->kind )
@@ -4218,10 +4102,10 @@
                 bestElement = element;
             }
         }
-    
+
         return bestElement;
     }
-    
+
     void MgWriteDoc(
         MgContext*        context,
         MgInputFile*      inputFile,
@@ -4232,7 +4116,7 @@
             "<html>\n"
             "<head>\n"
             "    <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />\n");
-    
+
         // try to find a title to output
         // TODO: support title coming from command line or config file
         MgElement* titleElement = MgFindMetaData(context, inputFile, "title");
@@ -4242,25 +4126,25 @@
         if( titleElement )
             MgWriteElementText(titleElement, writer);
         MgWriteCString(writer, "</title>\n");
-    
+
         // handle CSS meta-data
         MgForEachMetaData(context, inputFile, "css", &MgCssMetaDataCallback, writer);
-    
+
         // TODO: add other kinds of meta-data support
-    
+
         MgWriteCString(writer,
             "</head>\n"
             "<body>\n");
-    
+
         WriteElements(
             context,
             inputFile->firstElement,
             writer );
-    
+
         MgWriteCString(writer,
             "</body>\n");
     }
-    
+
     #ifdef _MSC_VER
     char* stpcpy(char* dest, char const* src)
     {
@@ -4269,46 +4153,46 @@
         return dest-1;
     }
     #endif
-    
+
     void MgWriteDocFileToPath(
         MgContext*    context,
         MgInputFile*  inputFile,
         const char* path)
     {
         MgWriter writer;
-    
+
         int counter = 0;
         MgInitializeCountingWriter( &writer, &counter );
-    
+
         // run the export logic once, to count the size needed
         MgWriteDoc( context, inputFile, &writer );
-    
+
         int size = counter;
         char* data = (char*) malloc(size + 1);
         data[size] = 0; // \todo: shouldn't be required
-    
+
         MgInitializeMemoryWriter( &writer, data );
-    
+
         // run the export logic again, this time writing to the output buffer
         MgWriteDoc( context, inputFile, &writer );
-    
+
         MgString outputText = MgMakeString( data, data + size );
-    
+
         MgWriteTextToFile(outputText, path);
     }
-    
+
     void MgWriteDocFile(
         MgContext* context,
         MgInputFile* inputFile)
     {
         // compute path for output file...
-    
+
         // find just the name part of the input file path
         char const* inputFilePath = inputFile->path;
         char const* docOutputPath = ""; // \todo: options parsing!!!
         char const* slash = strrchr(inputFilePath, '/');
         char const* inputFileName = slash ? slash+1 : inputFilePath;
-    
+
         // allocate six extra characters for worst-case ".html\0"
         int outputPathSize = strlen(docOutputPath) + strlen(inputFileName) + 6;
         char* outputFileName = (char*) malloc(outputPathSize);
@@ -4317,29 +4201,29 @@
         cursor = stpcpy(cursor, inputFileName);
         char* dot = strrchr(outputFileName, '.');
         cursor = strcpy(dot ? dot : cursor, ".html");
-    
+
         MgWriteDocFileToPath(
             context,
             inputFile,
             outputFileName );
-    
+
         free(outputFileName);
     }
-    
+
     MgInputFile* MgGetFirstInputFile(
         MgContext* context)
     {
         if( !context ) return 0;
         return context->firstInputFile;
     }
-    
+
     MgInputFile* MgGetNextInputFile(
         MgInputFile*  inputFile)
     {
         if( !inputFile ) return 0;
         return inputFile->next;
     }
-    
+
     void MgWriteAllDocFiles(
         MgContext* context )
     {
@@ -4350,19 +4234,19 @@
             inputFile = MgGetNextInputFile( inputFile );
         }
     }
-    
-    
-    
-    
-    
+
+
+
+
+
     /* Core Compilation Flow */
-    
+
     MgString ReadLineText(
         MgReader* reader )
     {
         char const* textBegin = reader->cursor;
         char const* textEnd = textBegin;
-    
+
         for(;;)
         {
             int c, d;
@@ -4372,7 +4256,7 @@
             default:
                 textEnd = reader->cursor;
                 continue;
-    
+
             case '\r':
             case '\n':
                 d = MgGetChar(reader);
@@ -4380,7 +4264,7 @@
                 {
                     MgUnGetChar(reader, d);
                 }
-    
+
                 // fall-through:
             case -1:
                 // either a newline or the end of the file
@@ -4388,7 +4272,7 @@
             }
         }    
     }
-    
+
     void ReadLine(
         MgReader*   reader,
         MgLine*         line )
@@ -4398,14 +4282,14 @@
         line->text.begin = text.begin;
         line->text.end   = text.end;
     }
-    
+
     void ReadLines(
         MgReader*   reader,
         MgLine*         beginLines,
         MgLine*         endLines )
     {
         MgLine* lineCursor = beginLines;
-    
+
         // always at least one line
         ReadLine( reader, lineCursor++ );
         while(!MgAtEnd(reader))
@@ -4413,13 +4297,13 @@
             ReadLine( reader, lineCursor++ );
         }
     }
-    
+
     int MgCountLinesInString(
         MgString string )
     {
         MgReader reader;
         MgInitializeStringReader( &reader, string );
-    
+
         // always at least one line
         MgString lineText = ReadLineText( &reader );
         int lineCount = 1;
@@ -4430,7 +4314,7 @@
         }
         return lineCount;
     }
-    
+
     void MgReadLinesFromString(
         MgString  string,
         MgLine* beginLines,
@@ -4440,9 +4324,9 @@
         MgInitializeStringReader( &reader, string );
         ReadLines( &reader, beginLines, endLines );
     }
-    
+
     //
-    
+
     void MgReadLines(
         MgContext*      context,
         MgInputFile*    inputFile )
@@ -4452,19 +4336,19 @@
         MgLine* endLines = beginLines + lineCount;
         inputFile->beginLines = beginLines;
         inputFile->endLines = endLines;
-    
+
         MgReadLinesFromString(
             inputFile->text,
             beginLines,
             endLines );    
     }
-    
+
     void MgParseInputFileText(
         MgContext*      context,
         MgInputFile*    inputFile )
     {
         MgReadLines( context, inputFile );
-    
+
         MgElement* firstElement = MgParseBlockElements(
             context,
             inputFile,
@@ -4472,13 +4356,13 @@
             inputFile->endLines );
         inputFile->firstElement = firstElement;
     }
-    
+
     void MgParseMetaDataText(
         MgContext*      context,
         MgInputFile*    inputFile )
     {
         MgReadLines( context, inputFile );
-    
+
         MgElement* firstElement = MgParseMetaDataElements(
             context,
             inputFile,
@@ -4486,23 +4370,23 @@
             inputFile->endLines );
         inputFile->firstElement = firstElement;
     }
-    
+
     void MgInitialize(
         MgContext*  context )
     {
         memset(context, 0, sizeof(*context));
     }
-    
+
     void MgFinalizeElements(
         MgContext*      context,
         MgElement*      firstElement );
-    
+
     void MgFinalizeElement(
         MgContext*      context,
         MgElement*      element )
     {
         MgFinalizeElements( context, element->firstChild );
-    
+
         MgAttribute* attr = element->firstAttr;
         while( attr )
         {
@@ -4511,7 +4395,7 @@
             attr = next;
         }
     }
-    
+
     void MgFinalizeElements(
         MgContext*      context,
         MgElement*      firstElement )
@@ -4525,7 +4409,7 @@
             element = next;
         }
     }
-    
+
     void MgFinalizeInputFile(
         MgContext*      context,
         MgInputFile*    file)
@@ -4534,9 +4418,9 @@
             free( file->allocatedFileData );
         if( file->beginLines )
             free( file->beginLines );
-    
+
         MgFinalizeElements( context, file->firstElement );
-    
+
         MgReferenceLink* link = file->firstReferenceLink;
         while( link )
         {
@@ -4545,7 +4429,7 @@
             link = next;
         }
     }
-    
+
     void MgFinalizeScrapFileGroup(
         MgContext*          context,
         MgScrapFileGroup*   group)
@@ -4561,7 +4445,7 @@
             scrap = next;
         }
     }
-    
+
     void MgFinalizeScrapNameGroup(
         MgContext*          context,
         MgScrapNameGroup*   group)
@@ -4575,7 +4459,7 @@
             subGroup = next;
         }
     }
-    
+
     void MgFinalize(
         MgContext*  context)
     {
@@ -4587,7 +4471,7 @@
             free( file );
             file = next;
         }
-    
+
         MgScrapNameGroup* group = context->firstScrapNameGroup;
         while( group )
         {
@@ -4597,7 +4481,7 @@
             group = next;
         }
     }
-    
+
     MgInputFile* MgAllocateInputFile(
         MgContext*    context,
         const char* path,
@@ -4607,14 +4491,14 @@
         if( !context )      return 0;
         if( !path )         return 0;
         if( !textBegin )    return 0;
-    
+
         if( !textEnd )
         {
             textEnd = textBegin + strlen(textBegin);
         }
-    
+
         MgString text = { textBegin, textEnd };
-    
+
         MgInputFile* inputFile = (MgInputFile*) malloc(sizeof(MgInputFile));
         if( !inputFile )
             return MG_NULL;
@@ -4624,10 +4508,10 @@
         inputFile->next         = 0;
         inputFile->allocatedFileData = 0;
         inputFile->firstReferenceLink = 0;
-    
+
         return inputFile;
     }
-    
+
     MgInputFile* MgAddInputFileText(
         MgContext*    context,
         const char* path,
@@ -4641,7 +4525,7 @@
             textEnd );
         if( !inputFile )
             return MG_NULL;
-    
+
         if( context->lastInputFile )
         {
             context->lastInputFile->next = inputFile;
@@ -4651,14 +4535,14 @@
             context->firstInputFile = inputFile;
         }
         context->lastInputFile = inputFile;
-    
+
         MgParseInputFileText(
             context,
             inputFile );
-    
+
         return inputFile;
     }
-    
+
     char* MgReadFileStreamContent(
         MgContext*  context,
         char const* path,
@@ -4670,7 +4554,7 @@
         int end = ftell(stream);
         fseek(stream, begin, SEEK_SET);
         int size = end - begin;
-    
+
         // allocate buffer for input file
         char* fileData = (char*) malloc(size + 1);
         if( !fileData )
@@ -4681,7 +4565,7 @@
         // we NULL-terminate the buffer just in case
         // (but the code should never rely on this)
         fileData[size] = 0;
-    
+
         int sizeRead = fread(fileData, 1, size, stream);
         if( sizeRead != size )
         {
@@ -4689,11 +4573,11 @@
             free(fileData);
             return MG_NULL;
         }
-    
+
         *outSize = size;
         return fileData;
     }
-    
+
     MgInputFile* MgAddInputFileStream(
         MgContext*  context,
         char const* path,
@@ -4701,12 +4585,12 @@
     {
         if( !context )  return 0;
         if( !stream )   return 0;
-    
+
         int size = 0;
         char* fileData = MgReadFileStreamContent( context, path, stream, &size );
         if( !fileData )
             return MG_NULL;
-    
+
         MgString text = { fileData, fileData + size };
         MgInputFile* inputFile = MgAddInputFileText(
             context,
@@ -4716,7 +4600,7 @@
         inputFile->allocatedFileData = fileData;
         return inputFile;
     }
-    
+
     MgInputFile* MgAddInputFilePath(
         MgContext*    context,
         const char* path )
@@ -4724,14 +4608,14 @@
         FILE* stream = MG_NULL;
         if( !context )  return 0;
         if( !path )     return 0;
-    
+
         stream = fopen(path, "rb");
         if( !stream )
         {
             fprintf(stderr, "mangle: failed to open \"%s\" for reading\n", path);
             return 0;
         }
-    
+
         MgInputFile* inputFile = MgAddInputFileStream(
             context,
             path,
@@ -4739,7 +4623,7 @@
         fclose(stream);
         return inputFile;
     }
-    
+
     MgInputFile* MgAddMetaDataText(
         MgContext*  context,
         const char* path,
@@ -4749,7 +4633,7 @@
         // don't allow multiple meta-data files
         if( context->metaDataFile )
             return MG_NULL;
-    
+
         MgInputFile* inputFile = MgAllocateInputFile(
             context,
             path,
@@ -4757,15 +4641,15 @@
             textEnd );
         if( !inputFile )
             return MG_NULL;
-    
+
         context->metaDataFile = inputFile;
-    
+
         MgParseMetaDataText(
             context,
             inputFile );
         return inputFile;
     }
-    
+
     MgInputFile* MgAddMetaDataFileStream(
         MgContext*  context,
         const char* path,
@@ -4773,12 +4657,12 @@
     {
         if( !context )  return 0;
         if( !stream )   return 0;
-    
+
         int size = 0;
         char* fileData = MgReadFileStreamContent( context, path, stream, &size );
         if( !fileData )
             return MG_NULL;
-    
+
         MgString text = { fileData, fileData + size };
         MgInputFile* inputFile = MgAddMetaDataText(
             context,
@@ -4788,8 +4672,8 @@
         inputFile->allocatedFileData = fileData;
         return inputFile;
     }
-    
-    
+
+
     MgInputFile* MgAddMetaDataFile(
         MgContext*  context,
         const char* path )
@@ -4797,14 +4681,14 @@
         FILE* stream = MG_NULL;
         if( !context )  return 0;
         if( !path )     return 0;
-    
+
         stream = fopen(path, "rb");
         if( !stream )
         {
             fprintf(stderr, "mangle: failed to open \"%s\" for reading\n", path);
             return 0;
         }
-    
+
         MgInputFile* inputFile = MgAddMetaDataFileStream(
             context,
             path,
@@ -4812,16 +4696,16 @@
         fclose(stream);
         return inputFile;
     }
-    
+
     /*
-    
+
     Application
     ===========
-    
+
     */
-    
+
     /* Command-Line Options */
-    
+
     typedef struct OptionsT
     {
         char const* executableName;
@@ -4829,7 +4713,7 @@
         char const* sourceOutputPath;
         char const* metaDataFilePath;
     } Options;
-    
+
     void InitializeOptions(
         Options*    options )
     {
@@ -4838,7 +4722,7 @@
         options->sourceOutputPath   = 0;
         options->metaDataFilePath   = 0;
     }
-    
+
     int ParseOptions(
         Options*    options,
         int*        ioArgCount,
@@ -4846,21 +4730,21 @@
     {
         int     remaining   = *ioArgCount;
         char**  readCursor  = argv;
-    
+
         char**  writeCursor = argv;
         int     outArgCount = 0;
-    
+
         if( remaining > 0 )
         {
             options->executableName = *readCursor++;
             --remaining;
         }
-    
+
         while(remaining)
         {
             char* option = *readCursor++;
             --remaining;
-    
+
             if( option[0] == '-' )
             {
                 if( option[1] == '-' )
@@ -4895,17 +4779,17 @@
                 {
                     // If we wanted to allow "short" options, this is where
                     // they would be processed.
-    
+
                     fprintf(stderr, "unknown option: %s\n", option);
                     return 0;
                 }
             }
-    
+
             // default logic
             *writeCursor++ = option;
             ++outArgCount;
         }
-    
+
         // pass through any options after `--` without inspecting them
         while( remaining )
         {
@@ -4914,45 +4798,45 @@
             *writeCursor++ = option;
             ++outArgCount;
         }
-    
+
         *ioArgCount = outArgCount;
         return 1;
     }
-    
+
     /* Main Entry Point */
-    
+
     int main(
         int     argc,
         char**  argv )
     {
         Options options;
         InitializeOptions( &options );
-    
+
         if( !ParseOptions( &options, &argc, argv ) )
         {
-    
+
             fprintf(stderr, "usage: %s file1.md [...]", argv[0]);
             exit(1);
         }
-    
+
         if( !argc )
         {
             fprintf(stderr, "no input files\n");
             exit(0);
         }
-    
+
         int status = 0;
-    
+
         // read all of the input files into the context
         MgContext context;
         MgInitialize( &context );
-    
+
         //
         if( options.metaDataFilePath )
         {
             MgAddMetaDataFile( &context, options.metaDataFilePath );
         }
-    
+
         for( int ii = 0; ii < argc; ++ii )
         {
             if( !MgAddInputFilePath( &context, argv[ii] ) )
@@ -4961,13 +4845,13 @@
                 continue;
             }
         }
-    
+
         MgWriteAllCodeFiles( &context );
-    
+
         MgWriteAllDocFiles( &context );
-    
+
         MgFinalize( &context );
-    
+
         return status;
     }
-    
+
