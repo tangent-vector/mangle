@@ -4,7 +4,10 @@ set BUILDDIR=%~dp0
 set ROOTDIR="%BUILDDIR%/.."
 cd "%ROOTDIR%"
 
-"./bootstrap.exe" README.md source/main.md source/string.md source/reader.md
+set sources=
+for /f "tokens=*" %%f in ('dir /b /a:-d "source\*.md"') do call set sources=%%sources%% "source/%%f"
+
+"./bootstrap.exe" README.md %sources%
 
 call "./mangle.bat"
 

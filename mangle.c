@@ -1,7 +1,7 @@
 
-#line 89 "source/main.md"
+#line 88 "source/main.md"
     
-#line 18 "source/main.md"
+#line 17 "source/main.md"
     /****************************************************************************
     Copyright (c) 2014 Tim Foley
     
@@ -24,7 +24,7 @@
     THE SOFTWARE.
     ****************************************************************************/
     
-#line 89 "source/main.md"
+#line 88 "source/main.md"
                
     
     #include <assert.h>
@@ -449,22 +449,22 @@
     */
     
     
-#line 52 "source/main.md"
+#line 51 "source/main.md"
     typedef int MgBool;
     #define MG_TRUE     (1)
     #define MG_FALSE    (0)
     
-#line 60 "source/main.md"
+#line 59 "source/main.md"
     #define MG_NULL     (0)
     
-#line 65 "source/main.md"
+#line 64 "source/main.md"
     struct MgLineT
     {
         MgString      text;
         char const* originalBegin;
     };
     
-#line 512 "source/main.md"
+#line 511 "source/main.md"
                             
     
     
@@ -537,7 +537,7 @@
         return result;
     }
     
-#line 514 "source/main.md"
+#line 513 "source/main.md"
                           
     
     
@@ -618,23 +618,11 @@
         return MgAtEnd(&leftReader) == MgAtEnd(&rightReader);
     }
     
-#line 516 "source/main.md"
+#line 515 "source/main.md"
                           
     
     
-    /*
-    
-    
-    
-    
-    
-    
-    
-    
-    /*
-    Parsing
-    -------
-    */
+#line 5 "source/parse.md"
     enum
     {
         kMaxHeaderLevel = 6,
@@ -1002,6 +990,11 @@
         return sourceLoc;
     }
     
+#line 517 "source/main.md"
+                           
+    
+    
+#line 5 "source/parse-span.md"
     /*
     ### Span-Level Elements ###
     */
@@ -1572,11 +1565,11 @@
         return writer.firstElement;
     }
     
+#line 519 "source/main.md"
+                                      
     
-    /*
-    ### Block-Level Elements ###
-    */
     
+#line 5 "source/parse-block.md"
     typedef struct LineRangeT
     {
         MgLine* begin;
@@ -3317,20 +3310,11 @@
         return firstElement;    
     }
     
+#line 521 "source/main.md"
+                                       
     
-    /*
-    Export
-    ------
-    */
     
-    /*
-    ### `MgWriter` ###
-    
-    Interface for writing characters. Currently supports writing to memory
-    buffers, along with a "writer" that simply counts characters. Other writers
-    would be easy to define (just requires a `MgPutChar` callback).
-    */
-    
+#line 13 "source/writer.md"
     typedef struct MgWriterT MgWriter;
     
     typedef void (*MgPutCharFunc)( MgWriter*, int );
@@ -3341,10 +3325,7 @@
         void*           userData;
     };
     
-    /*
-    Set up a writer that calls the `putCharFunc` callback for each output
-    character, passing the specified `userData` as an extra argument.
-    */
+#line 27 "source/writer.md"
     void MgInitializeWriter(
         MgWriter*     writer,
         MgPutCharFunc putCharFunc,
@@ -3354,12 +3335,7 @@
         writer->userData    = userData;
     }
     
-    /*
-    Write a single character to a writer.
-    
-    Note: this function takes an `int` paramter, but only `char` values
-    should be passed in (all other values will be cast to `char`).
-    */
+#line 42 "source/writer.md"
     void MgPutChar(
         MgWriter*     writer,
         int         value )
@@ -3367,10 +3343,7 @@
         writer->putCharFunc( writer, value );
     }
     
-    /*
-    Write all characters in range starting at pointer `begin` up to
-    the pointer `end` (not inclusive).
-    */
+#line 53 "source/writer.md"
     void MgWriteRange(
         MgWriter* writer,
         char const* begin,
@@ -3381,9 +3354,7 @@
             MgPutChar( writer, *cursor++ );
     }
     
-    /*
-    Write all characters in `string`.
-    */
+#line 66 "source/writer.md"
     void MgWriteString(
         MgWriter* writer,
         MgString  string )
@@ -3391,9 +3362,7 @@
         MgWriteRange( writer, string.begin, string.end );
     }
     
-    /*
-    Write the null-terminated string `string`.
-    */
+#line 76 "source/writer.md"
     void MgWriteCString(
         MgWriter* writer,
         char const* text)
@@ -3401,10 +3370,7 @@
         MgWriteRange(writer, text, text + strlen(text));
     }
     
-    /*
-    #### Memory Writer ####
-    */
-    
+#line 87 "source/writer.md"
     void MemoryWriter_PutChar(
         MgWriter* writer,
         int     value )
@@ -3414,11 +3380,7 @@
         writer->userData = cursor;
     }
     
-    /*
-    Initialize a writer that will output data to the specified `buffer`.
-    It is the responsibility of the user to allocate the right amount of
-    data (that is, you should probably have used a "counting" writer first).
-    */
+#line 101 "source/writer.md"
     void MgInitializeMemoryWriter(
         MgWriter* writer,
         void*   data )
@@ -3429,10 +3391,7 @@
             data );
     }
     
-    /*
-    #### Counting Writer ####
-    */
-    
+#line 115 "source/writer.md"
     void CountingWriter_PutChar(
         MgWriter* writer,
         int     value )
@@ -3441,11 +3400,7 @@
         ++(*counter);
     }
     
-    /*
-    Initialize a writer that will simply count the number of character written.
-    Once you've finished writing your data, the provided `counter` will contain
-    the count.
-    */
+#line 128 "source/writer.md"
     void MgInitializeCountingWriter(
         MgWriter* writer,
         int*    counter )
@@ -3457,15 +3412,11 @@
         *counter = 0;
     }
     
+#line 523 "source/main.md"
+                          
     
-    /*
-    ### Utilities for Export ###
-    */
     
-    /*
-    Find an existing attribute with the given `id`.
-    Return NULL if not found.
-    */
+#line 8 "source/export.md"
     MgAttribute* MgFindAttribute(
         MgElement*  pp,
         char const* id )
@@ -3479,6 +3430,7 @@
         return 0;
     }
     
+#line 27 "source/export.md"
     MgBool TextIsSameAsFileOnDisk(
         MgString  text,
         char const* filePath)
@@ -3504,12 +3456,7 @@
         }
     }
     
-    /*
-    Write the string `text` to the file specified by `path`, but first check
-    whether there is already a file on disk with that path with exactly the same
-    text (in which case don't write anything). This avoids triggerring unneeded
-    builds for build systems that check file modification times (e.g., `make`).
-    */
+#line 58 "source/export.md"
     void MgWriteTextToFile(
         MgString      text,
         char const* filePath)
@@ -3532,11 +3479,11 @@
         fclose(file);
     }
     
+#line 525 "source/main.md"
+                          
     
-    /*
-    ### Code Export ###
-    */
     
+#line 5 "source/export-code.md"
     void ExportScrapFileGroup(
         MgContext*        context,
         MgScrapFileGroup* scrapFileGroup,
@@ -3780,14 +3727,11 @@
         }
     }
     
+#line 527 "source/main.md"
+                               
     
     
-    
-    
-    /*
-    ### HTML Export ###
-    */
-    
+#line 5 "source/export-html.md"
     void WriteElement(
         MgContext*    context,
         MgElement*  pp,
@@ -4325,6 +4269,9 @@
     
         free(outputFileName);
     }
+    
+#line 529 "source/main.md"
+                               
     
     MgInputFile* MgGetFirstInputFile(
         MgContext* context)
@@ -4919,8 +4866,8 @@
         return 1;
     }
     
-    /* Main Entry Point */
     
+#line 1132 "source/main.md"
     int main(
         int     argc,
         char**  argv )
@@ -4970,4 +4917,7 @@
     
         return status;
     }
+    
+#line 1124 "source/main.md"
+                       
     
