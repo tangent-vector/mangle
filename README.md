@@ -5,14 +5,17 @@ Mangle is a tool for literate programming with Markdown and C family programming
 
 The goals of Mangle include:
 
+ * Require minimal effort to adopt.
  * Allow literate programs to be as readable as possible in their original (text) form.
  * Make literate programs pleasant to read when viewed as Markdown files on GitHub.
- * Require minimal effort to adopt.
+
+Mangle is still a work in progress, so stability is not currently its strong suit.
+
 
 Getting Started
 ---------------
 
-In order to use Mangle in a project, you can just copy the `mangle.c` file as well as `mangle.sh` and/or `mangle.bat` into your source tree. The batch file (for Windows) and shell script (for everything else) will try to build an executable from `mangle.c` when you run them the first time (or when `mangle.c` changes), and re-use it thereafter.
+In order to use Mangle in a project, you can just copy the `mangle.c` file as well as `mangle.sh` and/or `mangle.bat` into your source tree.
 
 In order to generate source and documentation files for a project, simply pass all of the literate source files to `mangle.bat` (for Windows) or `mangle.sh` (for everything else):
 
@@ -20,7 +23,8 @@ In order to generate source and documentation files for a project, simply pass a
 
 This will generate one `*.html` file from each `*.md` input, as well as any code files specified within the literate source.
 
-You could also pass files to Mangle one at a time, as long as you don't use the "global scraps" feature.
+The script will try to build an exectable from `mangle.c` the first time you run it (or when `mangle.c` changes), and re-use it thereafter.
+If for some reason the script isn't working for you, you could always just pass `mangle.c` to your favorite compiler to make an executable of your own.
 
 Syntax
 ------
@@ -35,107 +39,35 @@ Mangle then adds a few new pieces of syntax inspired by [noweb][] for defining a
 
   [noweb]:      http://www.cs.tufts.edu/~nr/noweb/                          "Noweb"
 
-### Scrap Definitions ###
+Examples
+--------
 
-By default, Markdown code blocks are *not* written to any output code file:
+The [`hello-world`](examples/hello-world/hello-world.md) example includes a brief introduction to using Mangle.
 
-    printf("This line won't be in the output\n");
+License
+--------
 
-In order for code to be part of the output program, it must be part of a named *scrap*. A scrap definition is any code block where the first line of code starts with `` << `` and ends with `` >>= ``:
+Mangle is made available under the [MIT License](http://opensource.org/licenses/MIT).
 
-    <<simple-scrap>>=
-    printf("Hello, World!\n");
+    <<global:license>>=
+    /****************************************************************************
+    Copyright (c) 2014 Tim Foley
 
-The preceding example defines a scrap named `simple-scrap`, which includes one line of C code.
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
 
-### Scrap References, and Formatted Names
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
 
-A named scrap can be referenced by another scrap, to insert its definition in place:
-
-    <<print-stuff | output greetings using `printf`>>=
-    printf("***\n");
-    <<simple-scrap>>
-
-The scrap `print-stuff` includes a reference to `simple-scrap`, simply by giving the scrap name between `` << `` and `` >> ``. This scrap also shows another feature: we can define a "pretty" name for a scrap, in addition to the internal identifier, by separating them with `|`. The identifier on the left is used when referring to the scrap within the literate program, but the Markdown text on the right will be used when representing the scrap in the formatted output.
-
-### Extending a Scrap Definition
-
-A single scrap name may be defined at multiple places, and its text will be the concatenation of all these definitions. Thus we can extend the ``simple-scrap`` scrap as follows:
-
-    <<simple-scrap | a simple scrap>>=
-    printf("It's-a Me!\n");
-
-Note that we can also add a "pretty" name to a previously-declared scrap (although only one definition site should include a pretty name). Note also that a scrap can be referenced before it is extended (or even before it it defined). A reference always includes the full text of the scrap (all definitions), regardless of the order of definitions.
-
-### Scrap Kinds
-
-When defining or extending a scrap, we can also apply a "kind" to it:
-
-    <<global:print-stuff>>=
-    printf("***\n");
-
-In this case, we are saying that the `print-stuff` scrap is a `global` scrap, which means that it can be defined and extended across multiple input Markdown files, and the definitions across all the files will be combined to yield the scrap text (in the order the files were specified on the command line).
-
-The default scrap kind is `local`, which means that definitions will be grouped together on a file-by-file basis, rather than globally, so that each file can re-use some common scrap names.
-
-It is an error to declare the same scrap name with different kinds; all definition sites must either match, or not specify a kind. Users are encouraged to apply a naming scheme to avoid this problem - e.g., by prefixing all global scrap names with `g` (e.g., `g-print-stuff`).
-
-### Output Files
-
-Just defining scraps *still* doesn't lead to any code files being output. In order to tell Mangle to write a code file to disk, you need to use a scrap definition with the `file` kind:
-
-    <<file:hello.c | example program `hello.c`>>=
-    #include <stdio.h>
-
-    void main( int argc, char** argv )
-    {
-        <<print-stuff>>
-        return 0;
-    }
-
-When a scrap has the `file` kind, Mangle uses its internal name as the file name to output. When Mangle is run on this file (`README.md`), it will output the body of the above scrap (and the scraps it references) to `hello.c`.
-
-The expected output in this case looks like:
-
-```
-
-#line 75 "README.md"
-
-#line 83 "README.md"
-    #include <stdio.h>
-
-void main( int argc, char** argv )
-{
-    
-#line 51 "README.md"
-    printf("***\n");
-
-#line 42 "README.md"
-    printf("Hello, World!\n");
-
-#line 61 "README.md"
-    printf("It's-a Me!\n");
-
-#line 52 "README.md"
-                    
-
-#line 70 "README.md"
-    printf("***\n");
-
-#line 87 "README.md"
-                       
-    return 0;
-}
-```
-
-As you can see, Mangle automatically inserts `#line` directives that link the generated code file back to the Markdown source.
-
-## License
-
-Copyright (c) 2014 Tim Foley
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.
+    ****************************************************************************/

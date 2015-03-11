@@ -9,6 +9,6 @@ for /f "tokens=*" %%f in ('dir /b /a:-d "source\*.md"') do call set sources=%%so
 
 "./bootstrap.exe" README.md %sources%
 
-call "./mangle.bat"
+call "./mangle.bat" "examples/hello-world/hello-world.md"
 
 :Exit

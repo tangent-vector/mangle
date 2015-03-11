@@ -254,8 +254,14 @@ Parsing Span-Level Elements
         // follow GitHub Flavored Markdown, in only
         // allowing underscores for <em> when
         // they mark a whole word...
-        if( (c == '_') && !isspace(MgGetPrecedingChar(reader)) )
-            return MG_NULL;
+
+        // we need to look at the character before `c`
+        if( reader->cursor > inputFile->text.begin )
+        {
+            char prev = *(reader->cursor - 1);
+            if( (c == '_') && !isspace(prev) )
+                return MG_NULL;            
+        }
 
         int count = 0;
         for(; count < 2; ++count)

@@ -1,8 +1,13 @@
 Reader
 ------
 
-The `MgReader` type is an abstraction for reading from an `MgString`,
-one character at a time.
+An `MgReader` is an abstraction for reading from an `MgString`, one character at a time.
+The main benefits it has over just doing pointer-based reading are:
+
+ * we get an end-of-file marker when trying to read past the end of the input (rather than unpredictable results), and
+ * we can "unget" characters easily to replay input
+
+The state of a reader consist of the original string it is operating on, along with a "cursor" into that string.
 
     <<global:reader definitions>>=
     typedef struct MgReaderT
@@ -11,8 +16,8 @@ one character at a time.
         char const* cursor;
     } MgReader;
 
-The `MgGetChar` and `MgPeekChar` functions will return `kMgEndOfFile` when
-trying to read past the end of the string.
+If we try to read past the end of the string, we will return the `kMgEndOfFile` marker.
+We might eventually switch this to use the C standard library `EOF` instead.
 
     <<reader definitions>>=
     enum
@@ -20,7 +25,7 @@ trying to read past the end of the string.
         kMgEndOfFile = -1,
     };
 
-Set up to start reading from `string`.
+To start reading from a string, we simply set the cursor of the reader to the beginning of the string.
 
     <<reader definitions>>=
     void MgInitializeStringReader(
@@ -31,8 +36,7 @@ Set up to start reading from `string`.
         reader->cursor  = string.begin;    
     }
 
-
-Return `MG_TRUE` if reader is at end.
+A reader is at the end of the input when the cursor is equal to the `end` field of the original string.
 
     <<reader definitions>>=
     MgBool MgAtEnd(
@@ -41,7 +45,8 @@ Return `MG_TRUE` if reader is at end.
         return reader->cursor == reader->string.end;
     }
 
-Get next character from the reader, or `kMgEndOfFile` if at end.
+When trying to read a character, we first check if we are at the end of the input, and if so we return `kMgEndOfFile`.
+Otherwise, we read a character from the cursor and increment it.
 
     <<reader definitions>>=
     int MgGetChar(
@@ -53,8 +58,8 @@ Get next character from the reader, or `kMgEndOfFile` if at end.
         return *(reader->cursor++);
     }
 
-Back up the reader by one character. The `value` passed in should match
-the most recent character (or end-of-file marker) read from the reader.
+In order to "unget" a non-end-of-file character, we need only decrement the cursor, assuming that the user is un-getting the most recent character read.
+If we are trying to unget an end-of-file character, then that is the result of trying to read past the end of the input, so we leave the cursor at the end.
 
     <<reader definitions>>=
     void MgUnGetChar(
@@ -67,29 +72,17 @@ the most recent character (or end-of-file marker) read from the reader.
         --(reader->cursor);
     }
 
-Get the character before the current position in the reader, or
-`kMgEndOfFile` if we are at the beginning of the string.
+The `MgUnGetChar` function could probably do with some more validation, since it doesn't catch attempts to unget the wrong value, or to unget past the beginning of the input.
 
-TODO: Is this function really needed? It is a bit gross to have.
-
-    <<reader definitions>>=
-    int MgGetPrecedingChar(
-        MgReader*   reader )
-    {
-        if( reader->cursor == reader->string.begin )
-            return -1;
-
-        return *(reader->cursor - 1);
-    }
-
-Return the next character that `MgGetChar` would yield, without advancing
-the cursor of the reader.
+Sometimes we just want to "peek" ahead in a reader, to see what the next call to `MgGetChar` would return.
+The implementation is basically the same as `MgGetChar`, just without the increment of the cursor.
 
     <<reader definitions>>=
     int MgPeekChar(
-        MgReader* reader )
+        MgReader*   reader )
     {
-        int result = MgGetChar( reader );
-        MgUnGetChar( reader, result );
-        return result;
+        if( MgAtEnd(reader) )
+            return kMgEndOfFile;
+
+        return *(reader->cursor);
     }

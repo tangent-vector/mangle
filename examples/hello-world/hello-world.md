@@ -1,212 +1,103 @@
-This is a Setext H1
-=========
+"Hello, World!"
+===============
 
-This is a Setext H2
----------
+In order to demonstrate how to use Mangle, we will develop a traditional "Hello, World" program.
 
-# Atx H1 #
+Scrap Definitions
+-----------------
 
+By default, Markdown code blocks are *not* written to any output code file:
 
-foo [bar](http://www.google.com) baz!
+    printf("This line won't be in the output\n");
 
-I get 10 times more traffic from [Google][gg] than from
-[Yahoo][] or [MSN][3].
+In order for code to be part of the output program, it must be part of a named *scrap*. A scrap definition is any code block where the first line of code starts with `` << `` and ends with `` >>= ``:
 
-  [gg]: http://google.com/        "Google"
-  [yahoo]:  http://search.yahoo.com/  "Yahoo Search"
-  [3]:    http://search.msn.com/    "MSN Search"
+    <<hello-world>>=
+    printf("Hello, World!\n");
 
-## Atx H2 ########
+The preceding example defines a scrap named `simple-scrap`, which includes one line of C code.
 
-### Atx H3 ##
+Scrap References
+----------------
 
-#### Atx H4 ####
+A named scrap can be referenced by another scrap, to insert its definition in place:
 
-##### Atx H5 ##
+    <<print greeting between markers>>=
+    printf("***\n");
+    <<hello-world>>
 
-###### Atx H6 ######
+The scrap `output greeting between markers` includes a reference to `hello-world`, simply by giving the scrap name between `` << `` and `` >> ``.
 
-This is a *regular* _paragraph_, foo_bar **and** the following __ought__ to __be_ **inline* HTML:
+Extending a Scrap Definition
+----------------------------
 
-<table>
-    <tr>
-        <th>Foo</th>
-        <th>Bar</th>
-    </tr>
-    <tr>
-        <td>F</td>
-        <td>B</td>
-    </tr>
-</table>
+The previous scrap definition only included an opening `***` marker.
+To give it another marker on the other side of the greeting, we can *extend* the scrap with another definition:
 
-Let's try doing a table in Markdown:
+    <<print greeting between markers>>+=
+    printf("***\n");
 
-Foo | Bar
-|---|-----|
-| F | B
+Here we've used `+=` instead of just `=` at the end of the first line, to indicate that we are extending a pre-existing scrap definition, but this is not actually required by Mangle.
 
-This is another regular paragraph.
+A scrap can be referenced before it is extended (or event before it is defined).
+A reference to a scrap always expands to the full text of the scrap (all definitions), regardless of the order of definitions.
 
-> This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
-> consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
-> Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
-> 
-> Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
-> id sem consectetuer libero luctus adipiscing.
+"Pretty" Names
+--------------
 
-regular text
+When defining or extending a scrap, we can give it a "pretty" name, in addition to the internal identifier.
+The pretty name comes after the identifier, separated by a `|`:
 
-> This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
-consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
-Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
+    <<hello-world | print a greeting>>=
+    printf("It's-a Me!\n");
 
-> Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
-id sem consectetuer libero luctus adipiscing.
+Output Files
+------------
 
-regular text
+Just defining scraps doesn't lead to any code files being output.
+In order to tell Mangle to write a code file to disk, you need to use a scrap definition with the `file:` prefix:
 
-> This is the first level of quoting.
->
-> > This is nested blockquote.
->
-> Back to the first level.
+    <<file:hello.c | example program `hello.c`>>=
+    #include <stdio.h>
 
-regular text
+    void main( int argc, char** argv )
+    {
+        <<print greeting between markers>>
+        return 0;
+    }
 
-> ## This is a header.
-> 
-> 1.   This is the first list item.
-> 2.   This is the second list item.
-> 
-> Here's some example code:
-> 
->     return shell_exec("echo $input | $markdown_script");
+When Mangle is run on this file (`hello-world.md`), it will output the body of the above scrap (and the scraps it references) to `hello.c`.
 
-*   Red
-*   Green
-*   Blue
-
-is equivalent to:
-
-+   Red
-+   Green
-+   Blue
-
-and:
-
--   Red
--   Green
--   Blue
-
-Ordered lists use numbers followed by periods:
-
-1.  Bird
-2.  McHale
-3.  Parish
-
-If you instead wrote the list in Markdown like this:
-
-1.  Bird
-1.  McHale
-1.  Parish
-
-or even:
-
-3. Bird
-1. McHale
-8. Parish
-
-lists can have multiple paragraphs:
-
-1.  This is a list item with two paragraphs. Lorem ipsum dolor
-    sit amet, consectetuer adipiscing elit. Aliquam hendrerit
-    mi posuere lectus.
-
-    Vestibulum enim wisi, viverra nec, fringilla in, laoreet
-    vitae, risus. Donec sit amet nisl. Aliquam semper ipsum
-    sit amet velit.
-
-2.  Suspendisse id sem consectetuer libero luctus adipiscing.
-
-or the lazy form:
-
-*   This is a list item with two paragraphs.
-
-    This is the second paragraph in the list item. You're
-only required to indent the first line. Lorem ipsum dolor
-sit amet, consectetuer adipiscing elit.
-
-*   Another item in the same list.
-
-nesting quotes or code inside a list item:
-
-*   A list item with a blockquote:
-
-    > This is a blockquote
-    > inside a list item.
-
-*   A list item with a code block:
-
-        <code goes here>
-
-This is a normal paragraph:
-
-    This is a code block.
-
-Here is an example of AppleScript:
-
-    tell application "Foo"
-        beep
-    end tell
-
-
-horizontal rule types:
-
-hyphens
-
----
-
-asterisks
-
-* * *
-
-underscores
-
-________________
-
-there we go...
-
-
-
-# A Hello World Program#
+The expected output in this case looks like:
 
 ```
-<<print-it>>=
-printf("Hello, World!\n");
+
+#line 61 "examples/hello-world/hello-world.md"
+    #include <stdio.h>
+    
+    void main( int argc, char** argv )
+    {
+        
+#line 26 "examples/hello-world/hello-world.md"
+    printf("***\n");
+    
+#line 16 "examples/hello-world/hello-world.md"
+    printf("Hello, World!\n");
+    
+#line 52 "examples/hello-world/hello-world.md"
+    printf("It's-a Me!\n");
+    
+#line 27 "examples/hello-world/hello-world.md"
+                   
+    
+#line 38 "examples/hello-world/hello-world.md"
+    printf("***\n");
+    
+#line 65 "examples/hello-world/hello-world.md"
+                                          
+        return 0;
+    }
+    
 ```
 
-and here's the `main` (testing referencing a section name <<print-it>>):
-
-```
-<<file: main.cpp>>=
-#include <stdio.h>
-int main(
-    int     argc,
-    char**  argv )
-{
-
-    <<print-it>>
-    return 0;
-
-}
-```
-
-    <<print-it | *print* it>>=
-    printf("It's-a Me\n");
-
-The following is bracketed code using `` std`cout `` (just testing backticks...):
-
-```C++
-std::out << "Hello, World!" << std::endl;
-```
-
+As you can see, Mangle automatically inserts `#line` directives that link the generated code file back to the Markdown source.

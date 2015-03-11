@@ -1,7 +1,7 @@
 
-#line 88 "source/main.md"
+#line 58 "source/main.md"
     
-#line 17 "source/main.md"
+#line 53 "README.md"
     /****************************************************************************
     Copyright (c) 2014 Tim Foley
     
@@ -24,7 +24,7 @@
     THE SOFTWARE.
     ****************************************************************************/
     
-#line 88 "source/main.md"
+#line 58 "source/main.md"
                
     
     #include <assert.h>
@@ -227,14 +227,16 @@
     typedef struct MgScrapFileGroupT    MgScrapFileGroup;
     typedef struct MgElementT           MgElement;
     
-    /*
-    A sub-range of an existing string buffer.
-    */
+    
+#line 8 "source/string.md"
     typedef struct MgStringT
     {
         char const* begin;
         char const* end;
     } MgString;
+    
+#line 260 "source/main.md"
+                           
     
     /*
     A location inside a source file (one-based line and column numbers).
@@ -449,39 +451,39 @@
     */
     
     
-#line 51 "source/main.md"
+#line 21 "source/main.md"
     typedef int MgBool;
     #define MG_TRUE     (1)
     #define MG_FALSE    (0)
     
-#line 59 "source/main.md"
+#line 29 "source/main.md"
     #define MG_NULL     (0)
     
-#line 64 "source/main.md"
+#line 34 "source/main.md"
     struct MgLineT
     {
         MgString      text;
         char const* originalBegin;
     };
     
-#line 511 "source/main.md"
+#line 474 "source/main.md"
                             
     
     
-#line 8 "source/reader.md"
+#line 13 "source/reader.md"
     typedef struct MgReaderT
     {
         MgString    string;
         char const* cursor;
     } MgReader;
     
-#line 18 "source/reader.md"
+#line 23 "source/reader.md"
     enum
     {
         kMgEndOfFile = -1,
     };
     
-#line 26 "source/reader.md"
+#line 31 "source/reader.md"
     void MgInitializeStringReader(
         MgReader*   reader,
         MgString          string )
@@ -490,14 +492,14 @@
         reader->cursor  = string.begin;    
     }
     
-#line 38 "source/reader.md"
+#line 42 "source/reader.md"
     MgBool MgAtEnd(
         MgReader*   reader )
     {
         return reader->cursor == reader->string.end;
     }
     
-#line 47 "source/reader.md"
+#line 52 "source/reader.md"
     int MgGetChar(
         MgReader*   reader )
     {
@@ -507,7 +509,7 @@
         return *(reader->cursor++);
     }
     
-#line 60 "source/reader.md"
+#line 65 "source/reader.md"
     void MgUnGetChar(
         MgReader*   reader,
         int             value )
@@ -518,37 +520,28 @@
         --(reader->cursor);
     }
     
-#line 76 "source/reader.md"
-    int MgGetPrecedingChar(
+#line 81 "source/reader.md"
+    int MgPeekChar(
         MgReader*   reader )
     {
-        if( reader->cursor == reader->string.begin )
-            return -1;
+        if( MgAtEnd(reader) )
+            return kMgEndOfFile;
     
-        return *(reader->cursor - 1);
+        return *(reader->cursor);
     }
     
-#line 89 "source/reader.md"
-    int MgPeekChar(
-        MgReader* reader )
-    {
-        int result = MgGetChar( reader );
-        MgUnGetChar( reader, result );
-        return result;
-    }
-    
-#line 513 "source/main.md"
+#line 476 "source/main.md"
                           
     
     
-#line 7 "source/string.md"
+#line 17 "source/string.md"
     static MgBool MgIsEmptyString(
         MgString string)
     {
         return string.begin == string.end;
     }
     
-#line 17 "source/string.md"
+#line 26 "source/string.md"
     MgString MgMakeString(
         char const* begin,
         char const* end)
@@ -559,20 +552,56 @@
         return result;
     }
     
-#line 30 "source/string.md"
+#line 39 "source/string.md"
     MgString MgMakeEmptyString()
     {
-        return MgMakeString(MG_NULL, MG_NULL);
+        return MgMakeString(NULL, NULL);
     }
     
-#line 39 "source/string.md"
+#line 48 "source/string.md"
     MgString MgTerminatedString(
         char const* begin)
     {
         return MgMakeString(begin, begin + strlen(begin));
     }
     
-#line 49 "source/string.md"
+#line 57 "source/string.md"
+    MgBool MgStringsAreEqual(
+        MgString left,
+        MgString right )
+    {
+        char const* leftCursor = left.begin;
+        char const* rightCursor = right.begin;
+    
+        for(;;)
+        {
+            
+#line 76 "source/string.md"
+    MgBool leftAtEnd = leftCursor == left.end;
+    MgBool rightAtEnd = rightCursor == right.end;
+    if( leftAtEnd || rightAtEnd )
+        return leftAtEnd == rightAtEnd;
+    
+#line 66 "source/string.md"
+                                        
+            
+#line 84 "source/string.md"
+    char leftChar = *leftCursor++;
+    char rightChar = *rightCursor++;
+    
+#line 67 "source/string.md"
+                                          
+            
+#line 88 "source/string.md"
+    if( leftChar != rightChar )
+        return MG_FALSE;
+    
+#line 68 "source/string.md"
+                                               
+        }
+    }
+    
+#line 94 "source/string.md"
     MgBool MgStringsAreEqualNoCase(
         MgString left,
         MgString right )
@@ -582,43 +611,33 @@
     
         for(;;)
         {
-            MgBool leftAtEnd = leftCursor == left.end;
-            MgBool rightAtEnd = rightCursor == right.end;
-            if( leftAtEnd || rightAtEnd )
-                return leftAtEnd == rightAtEnd;
+            
+#line 76 "source/string.md"
+    MgBool leftAtEnd = leftCursor == left.end;
+    MgBool rightAtEnd = rightCursor == right.end;
+    if( leftAtEnd || rightAtEnd )
+        return leftAtEnd == rightAtEnd;
     
-            char leftChar = *leftCursor++;
-            char rightChar = *rightCursor++;
-            if( tolower(leftChar) != tolower(rightChar) )
-                return MG_FALSE;
+#line 103 "source/string.md"
+                                        
+            
+#line 84 "source/string.md"
+    char leftChar = *leftCursor++;
+    char rightChar = *rightCursor++;
+    
+#line 104 "source/string.md"
+                                          
+            
+#line 110 "source/string.md"
+    if( tolower(leftChar) != tolower(rightChar) )
+        return MG_FALSE;
+    
+#line 105 "source/string.md"
+                                                                
         }
     }
     
-#line 73 "source/string.md"
-    MgBool MgStringsAreEqual(
-        MgString left,
-        MgString right )
-    {
-        MgReader leftReader;
-        MgReader rightReader;
-    
-        MgInitializeStringReader( &leftReader, left );
-        MgInitializeStringReader( &rightReader, right );
-    
-        while( !MgAtEnd(&leftReader)
-            && !MgAtEnd(&rightReader) )
-        {
-            int c = MgGetChar(&leftReader);
-            int d = MgGetChar(&rightReader);
-    
-            if( c != d )
-                return MG_FALSE;
-        }
-    
-        return MgAtEnd(&leftReader) == MgAtEnd(&rightReader);
-    }
-    
-#line 515 "source/main.md"
+#line 478 "source/main.md"
                           
     
     
@@ -990,7 +1009,7 @@
         return sourceLoc;
     }
     
-#line 517 "source/main.md"
+#line 480 "source/main.md"
                            
     
     
@@ -1247,8 +1266,14 @@
         // follow GitHub Flavored Markdown, in only
         // allowing underscores for <em> when
         // they mark a whole word...
-        if( (c == '_') && !isspace(MgGetPrecedingChar(reader)) )
-            return MG_NULL;
+    
+        // we need to look at the character before `c`
+        if( reader->cursor > inputFile->text.begin )
+        {
+            char prev = *(reader->cursor - 1);
+            if( (c == '_') && !isspace(prev) )
+                return MG_NULL;            
+        }
     
         int count = 0;
         for(; count < 2; ++count)
@@ -1565,7 +1590,7 @@
         return writer.firstElement;
     }
     
-#line 519 "source/main.md"
+#line 482 "source/main.md"
                                       
     
     
@@ -3310,67 +3335,52 @@
         return firstElement;    
     }
     
-#line 521 "source/main.md"
+#line 484 "source/main.md"
                                        
     
     
-#line 13 "source/writer.md"
+#line 7 "source/writer.md"
     typedef struct MgWriterT MgWriter;
     
+#line 12 "source/writer.md"
     typedef void (*MgPutCharFunc)( MgWriter*, int );
     
+#line 25 "source/writer.md"
     struct MgWriterT
     {
         MgPutCharFunc   putCharFunc;
         void*           userData;
     };
     
-#line 27 "source/writer.md"
-    void MgInitializeWriter(
-        MgWriter*     writer,
-        MgPutCharFunc putCharFunc,
-        void*       userData )
-    {
-        writer->putCharFunc = putCharFunc;
-        writer->userData    = userData;
-    }
-    
-#line 42 "source/writer.md"
+#line 34 "source/writer.md"
     void MgPutChar(
-        MgWriter*     writer,
+        MgWriter*   writer,
         int         value )
     {
         writer->putCharFunc( writer, value );
     }
     
-#line 53 "source/writer.md"
-    void MgWriteRange(
-        MgWriter* writer,
-        char const* begin,
-        char const* end)
-    {
-        char const* cursor = begin;
-        while( cursor != end )
-            MgPutChar( writer, *cursor++ );
-    }
-    
-#line 66 "source/writer.md"
+#line 46 "source/writer.md"
     void MgWriteString(
         MgWriter* writer,
         MgString  string )
     {
-        MgWriteRange( writer, string.begin, string.end );
+        char const* cursor = string.begin;
+        while( cursor != string.end )
+            MgPutChar( writer, *cursor++ );
     }
     
-#line 76 "source/writer.md"
+#line 58 "source/writer.md"
     void MgWriteCString(
-        MgWriter* writer,
+        MgWriter*   writer,
         char const* text)
     {
-        MgWriteRange(writer, text, text + strlen(text));
+        char const* cursor = text;
+        while( *cursor )
+            MgPutChar( writer, *cursor++ );
     }
     
-#line 87 "source/writer.md"
+#line 75 "source/writer.md"
     void MemoryWriter_PutChar(
         MgWriter* writer,
         int     value )
@@ -3380,18 +3390,16 @@
         writer->userData = cursor;
     }
     
-#line 101 "source/writer.md"
+#line 87 "source/writer.md"
     void MgInitializeMemoryWriter(
-        MgWriter* writer,
-        void*   data )
+        MgWriter*   writer,
+        void*       data )
     {
-        MgInitializeWriter(
-            writer,
-            &MemoryWriter_PutChar,
-            data );
+        writer->putCharFunc = &MemoryWriter_PutChar;
+        writer->userData    = data;
     }
     
-#line 115 "source/writer.md"
+#line 105 "source/writer.md"
     void CountingWriter_PutChar(
         MgWriter* writer,
         int     value )
@@ -3400,19 +3408,17 @@
         ++(*counter);
     }
     
-#line 128 "source/writer.md"
+#line 117 "source/writer.md"
     void MgInitializeCountingWriter(
         MgWriter* writer,
         int*    counter )
     {
-        MgInitializeWriter(
-            writer,
-            &CountingWriter_PutChar,
-            counter );
+        writer->putCharFunc = &CountingWriter_PutChar;
+        writer->userData = counter;
         *counter = 0;
     }
     
-#line 523 "source/main.md"
+#line 486 "source/main.md"
                           
     
     
@@ -3479,7 +3485,7 @@
         fclose(file);
     }
     
-#line 525 "source/main.md"
+#line 488 "source/main.md"
                           
     
     
@@ -3727,7 +3733,7 @@
         }
     }
     
-#line 527 "source/main.md"
+#line 490 "source/main.md"
                                
     
     
@@ -4270,7 +4276,7 @@
         free(outputFileName);
     }
     
-#line 529 "source/main.md"
+#line 492 "source/main.md"
                                
     
     MgInputFile* MgGetFirstInputFile(
@@ -4867,7 +4873,7 @@
     }
     
     
-#line 1132 "source/main.md"
+#line 1095 "source/main.md"
     int main(
         int     argc,
         char**  argv )
@@ -4918,6 +4924,6 @@
         return status;
     }
     
-#line 1124 "source/main.md"
+#line 1087 "source/main.md"
                        
     
