@@ -90,7 +90,6 @@
     `MgAddInputFilePath` instead.
     */
     
-    #ifndef MANGLE_NO_STDIO
     MgInputFile* MgAddInputFileStream(
         MgContext*  context,
         const char* path,
@@ -99,7 +98,6 @@
     MgInputFile* MgAddInputFilePath(
         MgContext*  context,
         const char* path );
-    #endif
     
     /*
     ## Meta-Data ##
@@ -118,11 +116,9 @@
         const char* textBegin,
         const char* textEnd );
     
-    #ifndef MANGLE_NO_STDIO
     MgInputFile* MgAddMetaDataFile(
         MgContext*  context,
         const char* path );
-    #endif
     
     /*
     ## Output ##
@@ -200,7 +196,6 @@
     at modification times to get confused.
     */
     
-    #ifndef MANGLE_NO_STDIO
     void MgWriteDocFile(
         MgContext*      context,
         MgInputFile*    inputFile);
@@ -208,24 +203,22 @@
     void MgWriteCodeFile(
         MgContext*          context,
         MgScrapNameGroup*   codeFile );
-    #endif
     
     /*
     TODO: lower-level routines for output to buffer/FILE*.
     */
     
-    /*
-    The following declarations give us the data structures used to represent
-    documents that have been parsed by Mangle. A client of the API probably
-    doesn't need to see any of this, but it is easier to define it here
-    than to try to hide it all.
-    */
     
+#line 436 "source/document.md"
+    typedef struct MgAttributeT         MgAttribute;
+    typedef struct MgElementT           MgElement;
     typedef struct MgLineT              MgLine;
     typedef struct MgReferenceLinkT     MgReferenceLink;
     typedef struct MgScrapT             MgScrap;
     typedef struct MgScrapFileGroupT    MgScrapFileGroup;
-    typedef struct MgElementT           MgElement;
+    
+#line 241 "source/main.md"
+                                     
     
     
 #line 8 "source/string.md"
@@ -235,70 +228,99 @@
         char const* end;
     } MgString;
     
-#line 260 "source/main.md"
+#line 243 "source/main.md"
                            
     
-    /*
-    A location inside a source file (one-based line and column numbers).
-    */
+    
+#line 13 "source/document.md"
     typedef struct MgSourceLocT
     {
         int line;
         int col;
     } MgSourceLoc;
     
-    /*
-    Kinds of scraps.
-    */
-    typedef enum MgScrapKind
-    {
-        kScrapKind_Unknown,     /* no kind declared yet */
-        kScrapKind_OutputFile,  /* an output file `file:` */
-        kScrapKind_GlobalMacro, /* a global (cross-file) macro `global:` */
-        kScrapKind_LocalMacro,  /* a local macro `local:` */
-    } MgScrapKind;
-    
-    /*
-    A single scrap definition.
-    */
+#line 29 "source/document.md"
     struct MgScrapT
     {
-        MgScrapFileGroup*   fileGroup;  /* the parent file group */
-        MgSourceLoc         sourceLoc;  /* the starting location */
-        MgElement*          body;       /* the body of the scrap (as parsed elements) */
-        MgScrap*            next;       /* the next scrap in the same file group */
+        
+#line 37 "source/document.md"
+    MgSourceLoc         sourceLoc;
+    MgElement*          body;
+    
+#line 107 "source/document.md"
+    MgScrap*            next;
+    
+#line 116 "source/document.md"
+    MgScrapFileGroup*   fileGroup;
+    
+#line 31 "source/document.md"
+                         
     };
     
-    /*
-    A scrap file group represents one or more scraps with the same ID, in the
-    same input file.
-    */
+#line 45 "source/document.md"
+    typedef enum MgScrapKind
+    {
+        
+#line 57 "source/document.md"
+    kScrapKind_Unknown,
+    
+#line 68 "source/document.md"
+    kScrapKind_LocalMacro,
+    
+#line 77 "source/document.md"
+    kScrapKind_GlobalMacro,
+    
+#line 86 "source/document.md"
+    kScrapKind_OutputFile,
+    
+#line 47 "source/document.md"
+                       
+    } MgScrapKind;
+    
+#line 93 "source/document.md"
     struct MgScrapFileGroupT
     {
-        MgScrapNameGroup* nameGroup;    /* the parent name group */
-        MgInputFile*      inputFile;    /* the file containing all these definitions */
-        MgScrap*          firstScrap;   /* the first scrap definition in the file for this ID */
-        MgScrap*          lastScrap;    /* the last scrap definition in the file for this ID */
-        MgScrapFileGroup* next;         /* the next file group with the same ID */
+        
+#line 101 "source/document.md"
+    MgInputFile*      inputFile;
+    
+#line 110 "source/document.md"
+    MgScrap*          firstScrap;
+    MgScrap*          lastScrap;
+    
+#line 148 "source/document.md"
+    MgScrapFileGroup* next;
+    
+#line 157 "source/document.md"
+    MgScrapNameGroup* nameGroup;
+    
+#line 95 "source/document.md"
+                                    
     };
     
-    /*
-    A scrap name group represents one or more scraps with the same ID, grouped by file.
-    */
+#line 123 "source/document.md"
     struct MgScrapNameGroupT
     {
-        MgScrapKind         kind;           /* the kind, or `kMgScrapKind_Unknown` if not declared yet */
-        MgString            id;             /* the internal ID for the scraps */
-        MgElement*          name;           /* the "pretty" name we present to the user */
-        MgScrapFileGroup*   firstFileGroup; /* first file group with this ID */
-        MgScrapFileGroup*   lastFileGroup;  /* last file group with this ID */
-        MgScrapNameGroup*   next;           /* next scrap name group in the context */
+        
+#line 133 "source/document.md"
+    MgString            id;
+    MgElement*          name;
+    
+#line 139 "source/document.md"
+    MgScrapKind         kind;
+    
+#line 151 "source/document.md"
+    MgScrapFileGroup*   firstFileGroup;
+    MgScrapFileGroup*   lastFileGroup;
+    
+#line 166 "source/document.md"
+    MgScrapNameGroup*   next;
+    
+#line 125 "source/document.md"
+                                    
     };
     
-    /*
-    An input file represents one of the Markdown documents that has been input
-    to the Mangle context.
-    */
+#line 174 "source/document.md"
     struct MgInputFileT
     {
         char const*     path;               /* path of input file (terminated) */
@@ -311,9 +333,7 @@
         MgReferenceLink*firstReferenceLink; /* first reference link parsed */
     };
     
-    /*
-    The `MgContext` type holds the state of the entire Mangle system.
-    */
+#line 193 "source/document.md"
     struct MgContextT
     {
         MgInputFile*        firstInputFile;         /* singly-linked list of input files */
@@ -325,73 +345,80 @@
         MgInputFile*        metaDataFile;
     };
     
-    /*
-    Kind of elements that we parse. These match closely to HTML element types
-    as well as Markdown document structure.
-    */
+#line 213 "source/document.md"
     typedef enum MgElementKindT
     {
-        /* block-level */
+        
+#line 221 "source/document.md"
     
-        kMgElementKind_Header1,             /* `<h1>` */
-        kMgElementKind_Header2,             /* `<h2>` */
-        kMgElementKind_Header3,             /* `<h3>` */
-        kMgElementKind_Header4,             /* `<h4>` */
-        kMgElementKind_Header5,             /* `<h5>` */
-        kMgElementKind_Header6,             /* `<h6>` */
-        kMgElementKind_BlockQuote,          /* `<blockquote>` */
-        kMgElementKind_CodeBlock,           /* `<pre><code>` */
-        kMgElementKind_HorizontalRule,      /* `<hr>` */
-        kMgElementKind_UnorderedList,       /* `<ul>` */
-        kMgElementKind_OrderedList,         /* `<ol>` */
-        kMgElementKind_ListItem,            /* `<li>` */
-        kMgElementKind_Paragraph,           /* `<p>` */
-        kMgElementKind_Table,               /* `<table>` */
-        kMgElementKind_TableRow,            /* `<tr>` */
-        kMgElementKind_TableHeader,         /* `<th>` */
-        kMgElementKind_TableCell,           /* `<td>` */
-        kMgElementKind_Text,                /* raw text */
-        kMgElementKind_HtmlBlock,           /* raw text, assumed to be HTML */
-        kMgElementKind_ScrapDef,            /* literate scrap definition with
-                                                children: scrap body
-                                                $scrap attribute: MgScrap*
-                                            */
-        kMgElementKind_MetaData,            /* meta-data declaration with
-                                                children: value
-                                                $key attribute: key
-                                            */
+#line 229 "source/document.md"
+    kMgElementKind_BlockQuote,          /* `<blockquote>` */
+    kMgElementKind_HorizontalRule,      /* `<hr>` */
+    kMgElementKind_UnorderedList,       /* `<ul>` */
+    kMgElementKind_OrderedList,         /* `<ol>` */
+    kMgElementKind_ListItem,            /* `<li>` */
+    kMgElementKind_Paragraph,           /* `<p>` */
+    kMgElementKind_Table,               /* `<table>` */
+    kMgElementKind_TableRow,            /* `<tr>` */
+    kMgElementKind_TableHeader,         /* `<th>` */
+    kMgElementKind_TableCell,           /* `<td>` */
     
-        /* span-level */
-        kMgElementKind_NewLine,             /* `"\n"` */
-        kMgElementKind_Em,                  /* `<em>` */
-        kMgElementKind_Strong,              /* `<strong>` */
-        kMgElementKind_InlineCode,          /* `<code>` */
-        kMgElementKind_Link,                /* `<a>` with href attribute */
-        kMgElementKind_LessThanEntity,      /* `&lt;` */
-        kMgElementKind_GreaterThanEntity,   /* `&gt;` */
-        kMgElementKind_AmpersandEntity,     /* `&amp;` */
-        kMgElementKind_ReferenceLink,       /* `<a>` with
-                                                $referenceLink attribute:
-                                                    MgReferenceLink*
-                                            */
-        kMgElementKind_ScrapRef,            /* reference back to a literate
-                                               scrap, with
-                                                $scrap-group attribute:
-                                                    MgScrapFileGroup*
-                                                $resume-at attribute:
-                                                    MgSourceLoc after end of ref
-                                            */
+#line 250 "source/document.md"
+    kMgElementKind_Header1,             /* `<h1>` */
+    kMgElementKind_Header2,             /* `<h2>` */
+    kMgElementKind_Header3,             /* `<h3>` */
+    kMgElementKind_Header4,             /* `<h4>` */
+    kMgElementKind_Header5,             /* `<h5>` */
+    kMgElementKind_Header6,             /* `<h6>` */
+    
+#line 263 "source/document.md"
+    kMgElementKind_CodeBlock,           /* `<pre><code>` */
+    
+#line 270 "source/document.md"
+    kMgElementKind_ScrapDef,
+    
+#line 286 "source/document.md"
+    kMgElementKind_MetaData,
+    
+#line 294 "source/document.md"
+    kMgElementKind_HtmlBlock,
+    
+#line 221 "source/document.md"
+                                 
+    
+#line 241 "source/document.md"
+    kMgElementKind_Em,                  /* `<em>` */
+    kMgElementKind_Strong,              /* `<strong>` */
+    kMgElementKind_InlineCode,          /* `<code>` */
+    
+#line 279 "source/document.md"
+    kMgElementKind_ScrapRef,
+    
+#line 308 "source/document.md"
+    kMgElementKind_LessThanEntity,      /* `&lt;` */
+    kMgElementKind_GreaterThanEntity,   /* `&gt;` */
+    kMgElementKind_AmpersandEntity,     /* `&amp;` */
+    
+#line 318 "source/document.md"
+    kMgElementKind_NewLine,             /* `"\n"` */
+    
+#line 325 "source/document.md"
+    kMgElementKind_Link,                /* `<a>` with href attribute */
+    
+#line 351 "source/document.md"
+    kMgElementKind_ReferenceLink,
+    
+#line 222 "source/document.md"
+                                
+    
+#line 301 "source/document.md"
+    kMgElementKind_Text,
+    
+#line 215 "source/document.md"
+                         
     } MgElementKind;
     
-    /*
-    A reference link structure is used to track the association between a
-    reference site for a reference-style link like `[Foo][]` and the
-    associated definition `[Foo] http://foo.com "Foo"`.
-    
-    It is created whenever a def/ref is encountered, and filled in with
-    whatever information is available at the def/ref site. Later defs/refs
-    for the same ID (case-insensitive) will refer to the same structure.
-    */
+#line 338 "source/document.md"
     struct MgReferenceLinkT
     {
         MgString          id;
@@ -400,45 +427,58 @@
         MgReferenceLink*  next;
     };
     
-    /*
-    An attribute structure is used to represent auxiliary data attached
-    to an element. This is both used for HTML attributes (in which case
-    `val` holds the text of the attriute balue), and for other kinds
-    of auxiliary data (in which case the ID will start with `$`, and the
-    data will be in one of the other fields of the `union`).
-    */
-    typedef struct MgAttributeT MgAttribute;
+#line 359 "source/document.md"
     struct MgAttributeT
     {
-        MgString              id;
-        MgAttribute*          next;
+        
+#line 373 "source/document.md"
+    MgString              id;
+    
+#line 378 "source/document.md"
+    MgAttribute*          next;
+    
+#line 361 "source/document.md"
+                             
         union
         {
-            MgString          val;
-            MgReferenceLink*  referenceLink;
-            MgScrap*          scrap;
-            MgScrapFileGroup* scrapFileGroup;
-            MgSourceLoc       sourceLoc;
+            
+#line 383 "source/document.md"
+    MgString          val;
+    
+#line 388 "source/document.md"
+    MgReferenceLink*  referenceLink;
+    MgScrap*          scrap;
+    MgScrapFileGroup* scrapFileGroup;
+    MgSourceLoc       sourceLoc;
+    
+#line 364 "source/document.md"
+                                       
         };
     };
     
-    /*
-    An element represents a part of the Markdown or HTML document structure.
-    Each eleemnt has a `kind` that effectively tells us what the HTML tag
-    would be, or otherwise identifies the flavor of content, some optional
-    direct `text`, zero or more attributes, and zero or more children.
-    */
+#line 398 "source/document.md"
     struct MgElementT
     {
-        MgElementKind   kind;
+        
+#line 406 "source/document.md"
+    MgElementKind   kind;
     
-        MgString        text;
+#line 412 "source/document.md"
+    MgString        text;
     
-        MgAttribute*    firstAttr;
-        MgElement*      firstChild;
+#line 417 "source/document.md"
+    MgAttribute*    firstAttr;
     
-        MgElement*      next;
+#line 422 "source/document.md"
+    MgElement*      firstChild;
+    MgElement*      next;
+    
+#line 400 "source/document.md"
+                           
     };
+    
+#line 245 "source/main.md"
+                                  
     
     
     /*
@@ -466,7 +506,7 @@
         char const* originalBegin;
     };
     
-#line 474 "source/main.md"
+#line 257 "source/main.md"
                             
     
     
@@ -530,7 +570,7 @@
         return *(reader->cursor);
     }
     
-#line 476 "source/main.md"
+#line 259 "source/main.md"
                           
     
     
@@ -637,7 +677,7 @@
         }
     }
     
-#line 478 "source/main.md"
+#line 261 "source/main.md"
                           
     
     
@@ -1009,7 +1049,7 @@
         return sourceLoc;
     }
     
-#line 480 "source/main.md"
+#line 263 "source/main.md"
                            
     
     
@@ -1590,7 +1630,7 @@
         return writer.firstElement;
     }
     
-#line 482 "source/main.md"
+#line 265 "source/main.md"
                                       
     
     
@@ -3335,7 +3375,7 @@
         return firstElement;    
     }
     
-#line 484 "source/main.md"
+#line 267 "source/main.md"
                                        
     
     
@@ -3418,7 +3458,7 @@
         *counter = 0;
     }
     
-#line 486 "source/main.md"
+#line 269 "source/main.md"
                           
     
     
@@ -3485,7 +3525,7 @@
         fclose(file);
     }
     
-#line 488 "source/main.md"
+#line 271 "source/main.md"
                           
     
     
@@ -3733,7 +3773,7 @@
         }
     }
     
-#line 490 "source/main.md"
+#line 273 "source/main.md"
                                
     
     
@@ -4276,7 +4316,7 @@
         free(outputFileName);
     }
     
-#line 492 "source/main.md"
+#line 275 "source/main.md"
                                
     
     MgInputFile* MgGetFirstInputFile(
@@ -4873,7 +4913,7 @@
     }
     
     
-#line 1095 "source/main.md"
+#line 878 "source/main.md"
     int main(
         int     argc,
         char**  argv )
@@ -4924,6 +4964,6 @@
         return status;
     }
     
-#line 1087 "source/main.md"
+#line 870 "source/main.md"
                        
     
