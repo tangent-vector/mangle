@@ -120,7 +120,6 @@ Here we go:
     `MgAddInputFilePath` instead.
     */
 
-    #ifndef MANGLE_NO_STDIO
     MgInputFile* MgAddInputFileStream(
         MgContext*  context,
         const char* path,
@@ -129,7 +128,6 @@ Here we go:
     MgInputFile* MgAddInputFilePath(
         MgContext*  context,
         const char* path );
-    #endif
 
     /*
     ## Meta-Data ##
@@ -148,11 +146,9 @@ Here we go:
         const char* textBegin,
         const char* textEnd );
 
-    #ifndef MANGLE_NO_STDIO
     MgInputFile* MgAddMetaDataFile(
         MgContext*  context,
         const char* path );
-    #endif
 
     /*
     ## Output ##
@@ -230,7 +226,6 @@ Here we go:
     at modification times to get confused.
     */
 
-    #ifndef MANGLE_NO_STDIO
     void MgWriteDocFile(
         MgContext*      context,
         MgInputFile*    inputFile);
@@ -238,7 +233,6 @@ Here we go:
     void MgWriteCodeFile(
         MgContext*          context,
         MgScrapNameGroup*   codeFile );
-    #endif
 
     /*
     TODO: lower-level routines for output to buffer/FILE*.
