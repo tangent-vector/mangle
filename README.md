@@ -39,9 +39,6 @@ Mangle then adds a few new pieces of syntax inspired by [noweb][] for defining a
 
   [noweb]:      http://www.cs.tufts.edu/~nr/noweb/                          "Noweb"
 
-Examples
---------
-
 The [`hello-world`](examples/hello-world/hello-world.md) example includes a brief introduction to using Mangle.
 
 License

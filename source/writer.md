@@ -6,7 +6,7 @@ The `MgWriter` type provides an interface for writing characters.
     <<global:writer definitions>>=
     typedef struct MgWriterT MgWriter;
 
-Implementions of this interfaces provide a callback for "putting" (writing) individual characters.
+Implementions of this interface provide a callback for "putting" (writing) individual characters.
 
     <<writer definitions>>=
     typedef void (*MgPutCharFunc)( MgWriter*, int );
