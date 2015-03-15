@@ -60,7 +60,7 @@ Parsing Span-Level Elements
     void FlushSpan(
         SpanWriter* writer )
     {
-        MgElement* element = MG_NULL;
+        MgElement* element = NULL;
         if( writer->spanStart == writer->spanEnd )
             return;
 
@@ -247,9 +247,9 @@ Parsing Span-Level Elements
         MgSpanFlags       flags,
         char            c )
     {
-        MgElement* inner = MG_NULL;
+        MgElement* inner = NULL;
         if( flags & kMgSpanFlag_DontProcessMarkdown )
-            return MG_NULL;
+            return NULL;
 
         // follow GitHub Flavored Markdown, in only
         // allowing underscores for <em> when
@@ -260,7 +260,7 @@ Parsing Span-Level Elements
         {
             char prev = *(reader->cursor - 1);
             if( (c == '_') && !isspace(prev) )
-                return MG_NULL;            
+                return NULL;            
         }
 
         int count = 0;
@@ -274,21 +274,21 @@ Parsing Span-Level Elements
             }
         }
         if( !count )
-            return MG_NULL;
+            return NULL;
 
         int e = MgPeekChar( reader );
         if( isspace(e) )
-            return MG_NULL; // can't start with white-space
+            return NULL; // can't start with white-space
 
         // appears to be the start of a span.
         // now we need to find the matching marker(s)
         char const* start = reader->cursor;
         char const* end = MgFindMatching( reader, c, count );
         if( !end )
-            return MG_NULL;
+            return NULL;
 
         if( (c == '_') && isalpha(MgPeekChar(reader)) )
-            return MG_NULL;
+            return NULL;
 
         // need to scan the inner text for other span markup
         inner = MgReadSpanElements( context, inputFile, line, MgMakeString(start, end), flags );
@@ -337,9 +337,9 @@ Parsing Span-Level Elements
         MgReader*   reader,
         MgSpanFlags       flags )
     {
-        MgElement* inner = MG_NULL;
+        MgElement* inner = NULL;
         if( flags & kMgSpanFlag_DontProcessMarkdown )
-            return MG_NULL;
+            return NULL;
 
         int count = 0;
         for(; count < 2; ++count)
@@ -352,7 +352,7 @@ Parsing Span-Level Elements
             }
         }
         if( !count )
-            return MG_NULL;
+            return NULL;
 
         // allow an optional space at start,
         // which will get trimmed
@@ -367,7 +367,7 @@ Parsing Span-Level Elements
         char const* start = reader->cursor;
         char const* end = MgFindMatching( reader, '`', count );
         if( !end )
-            return MG_NULL;
+            return NULL;
 
         // allow an optional space at end
         // which will get trimmed
@@ -403,8 +403,8 @@ Parsing Span-Level Elements
         int targetOpenBrace = MgGetChar( reader );
         if( targetOpenBrace == '(' )
         {
-            MgElement* inner    = MG_NULL;
-            MgElement* link     = MG_NULL;
+            MgElement* inner    = NULL;
+            MgElement* link     = NULL;
 
             // inline link
             char const* targetBegin = reader->cursor;

@@ -1,5 +1,5 @@
 
-#line 58 "source/main.md"
+#line 123 "source/main.md"
     
 #line 50 "README.md"
     /****************************************************************************
@@ -24,303 +24,151 @@
     THE SOFTWARE.
     ****************************************************************************/
     
-#line 58 "source/main.md"
+#line 123 "source/main.md"
                
     
+#line 133 "source/main.md"
     #include <assert.h>
     #include <ctype.h>
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
     
-    /* API */
+#line 124 "source/main.md"
+                
     
-    /*
-        
-    ## Context ##
+#line 142 "source/main.md"
     
-    All of the state for operations you do with Mangle gets
-    stored in a `MgContext`. The contents of this type
-    are laid bare at later in this file, but you shouldn't
-    need to rely on those details as a client of the API.
-    */
-    typedef struct MgContextT MgContext;
-    
-    /*
-    Before using other Mangle functions, you must initialize
-    the context with `MgInitialize`, and when you are
-    done you ought to call `MgFinalize` to let the
-    library clean up any memory it has allocated.
-    */
-    
-    void MgInitialize(
-        MgContext*  context );
-    
-    void MgFinalize(
-        MgContext*  context);
-    
-    /*
-    ## Input Files ##
-    
-    After initializing a context, you then need to read in
-    one or more files containing literate program code.
-    The type `MgInputFile` represents an input file,
-    which will ultimately be in a one-to-one relationship
-    with output documentation files.
-    */
-    
-    typedef struct MgInputFileT MgInputFile;
-    
-    /*
-    The fundamental entry point for adding input files to
-    the context is `MgAddInputFileText`. You can use
-    this function directly, or one of the convenience
-    routines that follows:
-    */
-    
-    MgInputFile* MgAddInputFileText(
-        MgContext*  context,
-        const char* path,       /* path to use when picking output file name/path */
-        const char* textBegin,  /* pointer to start of text buffer */
-        const char* textEnd );  /* pointer to end of text buffer, or NULL if buffer is NULL-terminated */
-    
-    /*
-    In the common case, the input might be files on disk, so
-    you can just use `MgAddInputFileStream` or
-    `MgAddInputFilePath` instead.
-    */
-    
-    MgInputFile* MgAddInputFileStream(
-        MgContext*  context,
-        const char* path,
-        FILE*       stream );
-    
-    MgInputFile* MgAddInputFilePath(
-        MgContext*  context,
-        const char* path );
-    
-    /*
-    ## Meta-Data ##
-    
-    The user can also specify a "meta-data" file that contains declarations that
-    will apply to all input files. This can be used to specify things that will
-    go into headers of the HTML output documents. The functions below return
-    the meta-data content in an `MgInputFile` (this is convenient since we might
-    allow meta-data declarations in the ordinary files too), but the file will
-    not be added to the linked list of input documents.
-    */
-    
-    MgInputFile* MgAddMetaDataText(
-        MgContext*  context,
-        const char* path,
-        const char* textBegin,
-        const char* textEnd );
-    
-    MgInputFile* MgAddMetaDataFile(
-        MgContext*  context,
-        const char* path );
-    
-    /*
-    ## Output ##
-    
-    As input files are read, Mangle builds up a representation
-    of Markdown document structure, and also creates a cross-
-    referenced database of literate programming "scraps" that
-    are defined or referenced in each file. Scraps with the
-    same identifier are grouped together, and some of these
-    groups represent source files that should be compiled
-    to create a program.
-    
-    Once you are done adding input files, you can begin to
-    export documentation and code files. The simplest way
-    to do this is with `MgWriteAllDocFiles` and
-    `MgWriteAllCodeFiles`.
-    */
-    
-    #ifndef MANGLE_NO_STDIO
-    void MgWriteAllDocFiles(
-        MgContext* context );
-    
-    void MgWriteAllCodeFiles(
-        MgContext* context );
-    #endif
-    
-    /*
-    If this isn't suitable for your needs, you can instead
-    iterate over the relevant files yourself.
-    
-    Input files can be iterated using `MgGetFirstInputFile`
-    and `MgGetNextInputFile`, or by just hanging on to
-    the pointer returned by `MgAddInputFile*`:
-    */
-    
-    MgInputFile* MgGetFirstInputFile(
-        MgContext* context );
-    
-    MgInputFile* MgGetNextInputFile(
-        MgInputFile* inputFile );
-    
-    /*
-    Similarly, you can iterate over the output code files that
-    were specified in the literate program, by using
-    `MgGetFirstCodeFile` and `MgGetNextCodeFile`.
-    
-    Note that output code files are just a special case of
-    "scrap groups," so this is really just a specialized
-    iterator over a subset of those:
-    */
-    typedef struct MgScrapNameGroupT MgScrapNameGroup;
-    
-    MgScrapNameGroup* MgGetFirstCodeFile(
-        MgContext* context );
-    
-    MgScrapNameGroup* MgGetNextCodeFile(
-        MgScrapNameGroup* codeFile );
-    
-    /*
-    Once you have the pointer to the input file or code file, you can
-    use one of the following functions to output it to a file.
-    
-    The first pair of functions outputs docs/code to a file where
-    the path is chosen by Mangle. For code files this will be
-    the code path prefix (if any) and the name given in the literate
-    code. For doc files, the name will be the doc path prefix (if any)
-    and the path of the input file with any file extension replaced
-    with `.html`.
-    
-    By default, Mangle will first output the content to memory,
-    and then check whether that data differs from what is on
-    disk already (by reading the output file). This is a
-    safeguard so that we don't end up "touching" files that
-    haven't really changed, causing build systems that look
-    at modification times to get confused.
-    */
-    
-    void MgWriteDocFile(
-        MgContext*      context,
-        MgInputFile*    inputFile);
-    
-    void MgWriteCodeFile(
-        MgContext*          context,
-        MgScrapNameGroup*   codeFile );
-    
-    /*
-    TODO: lower-level routines for output to buffer/FILE*.
-    */
-    
-    
-#line 436 "source/document.md"
-    typedef struct MgAttributeT         MgAttribute;
-    typedef struct MgElementT           MgElement;
-    typedef struct MgLineT              MgLine;
-    typedef struct MgReferenceLinkT     MgReferenceLink;
-    typedef struct MgScrapT             MgScrap;
-    typedef struct MgScrapFileGroupT    MgScrapFileGroup;
-    
-#line 241 "source/main.md"
-                                     
-    
-    
-#line 8 "source/string.md"
+#line 11 "source/string.md"
     typedef struct MgStringT
     {
         char const* begin;
         char const* end;
     } MgString;
     
-#line 243 "source/main.md"
+#line 43 "source/string.md"
+    MgString MgMakeString( char const* begin, char const* end );
+    
+#line 142 "source/main.md"
                            
     
+#line 484 "source/document.md"
+    
+#line 473 "source/document.md"
+    typedef struct MgAttributeT         MgAttribute;
+    typedef struct MgContextT           MgContext;
+    typedef struct MgElementT           MgElement;
+    typedef struct MgInputFileT         MgInputFile;
+    typedef struct MgLineT              MgLine;
+    typedef struct MgReferenceLinkT     MgReferenceLink;
+    typedef struct MgScrapT             MgScrap;
+    typedef struct MgScrapFileGroupT    MgScrapFileGroup;
+    typedef struct MgScrapNameGroupT    MgScrapNameGroup;
+    
+#line 484 "source/document.md"
+                                     
     
 #line 13 "source/document.md"
+    typedef int MgBool;
+    #define MG_TRUE     (1)
+    #define MG_FALSE    (0)
+    
+#line 24 "source/document.md"
     typedef struct MgSourceLocT
     {
         int line;
         int col;
     } MgSourceLoc;
     
-#line 29 "source/document.md"
+#line 40 "source/document.md"
     struct MgScrapT
     {
         
-#line 37 "source/document.md"
+#line 48 "source/document.md"
     MgSourceLoc         sourceLoc;
     MgElement*          body;
     
-#line 107 "source/document.md"
+#line 118 "source/document.md"
     MgScrap*            next;
     
-#line 116 "source/document.md"
+#line 127 "source/document.md"
     MgScrapFileGroup*   fileGroup;
     
-#line 31 "source/document.md"
+#line 42 "source/document.md"
                          
     };
     
-#line 45 "source/document.md"
+#line 56 "source/document.md"
     typedef enum MgScrapKind
     {
         
-#line 57 "source/document.md"
+#line 68 "source/document.md"
     kScrapKind_Unknown,
     
-#line 68 "source/document.md"
+#line 79 "source/document.md"
     kScrapKind_LocalMacro,
     
-#line 77 "source/document.md"
+#line 88 "source/document.md"
     kScrapKind_GlobalMacro,
     
-#line 86 "source/document.md"
+#line 97 "source/document.md"
     kScrapKind_OutputFile,
     
-#line 47 "source/document.md"
+#line 58 "source/document.md"
                        
     } MgScrapKind;
     
-#line 93 "source/document.md"
+#line 104 "source/document.md"
     struct MgScrapFileGroupT
     {
         
-#line 101 "source/document.md"
+#line 112 "source/document.md"
     MgInputFile*      inputFile;
     
-#line 110 "source/document.md"
+#line 121 "source/document.md"
     MgScrap*          firstScrap;
     MgScrap*          lastScrap;
     
-#line 148 "source/document.md"
+#line 159 "source/document.md"
     MgScrapFileGroup* next;
     
-#line 157 "source/document.md"
+#line 168 "source/document.md"
     MgScrapNameGroup* nameGroup;
     
-#line 95 "source/document.md"
+#line 106 "source/document.md"
                                     
     };
     
-#line 123 "source/document.md"
+#line 134 "source/document.md"
     struct MgScrapNameGroupT
     {
         
-#line 133 "source/document.md"
+#line 144 "source/document.md"
     MgString            id;
     MgElement*          name;
     
-#line 139 "source/document.md"
+#line 150 "source/document.md"
     MgScrapKind         kind;
     
-#line 151 "source/document.md"
+#line 162 "source/document.md"
     MgScrapFileGroup*   firstFileGroup;
     MgScrapFileGroup*   lastFileGroup;
     
-#line 166 "source/document.md"
+#line 177 "source/document.md"
     MgScrapNameGroup*   next;
     
-#line 125 "source/document.md"
+#line 136 "source/document.md"
                                     
     };
     
-#line 174 "source/document.md"
+#line 185 "source/document.md"
+    struct MgLineT
+    {
+        MgString      text;
+        char const* originalBegin;
+    };
+    
+#line 211 "source/document.md"
     struct MgInputFileT
     {
         char const*     path;               /* path of input file (terminated) */
@@ -333,7 +181,7 @@
         MgReferenceLink*firstReferenceLink; /* first reference link parsed */
     };
     
-#line 193 "source/document.md"
+#line 230 "source/document.md"
     struct MgContextT
     {
         MgInputFile*        firstInputFile;         /* singly-linked list of input files */
@@ -345,13 +193,13 @@
         MgInputFile*        metaDataFile;
     };
     
-#line 213 "source/document.md"
+#line 250 "source/document.md"
     typedef enum MgElementKindT
     {
         
-#line 221 "source/document.md"
+#line 258 "source/document.md"
     
-#line 229 "source/document.md"
+#line 266 "source/document.md"
     kMgElementKind_BlockQuote,          /* `<blockquote>` */
     kMgElementKind_HorizontalRule,      /* `<hr>` */
     kMgElementKind_UnorderedList,       /* `<ul>` */
@@ -363,7 +211,7 @@
     kMgElementKind_TableHeader,         /* `<th>` */
     kMgElementKind_TableCell,           /* `<td>` */
     
-#line 250 "source/document.md"
+#line 287 "source/document.md"
     kMgElementKind_Header1,             /* `<h1>` */
     kMgElementKind_Header2,             /* `<h2>` */
     kMgElementKind_Header3,             /* `<h3>` */
@@ -371,54 +219,54 @@
     kMgElementKind_Header5,             /* `<h5>` */
     kMgElementKind_Header6,             /* `<h6>` */
     
-#line 263 "source/document.md"
+#line 300 "source/document.md"
     kMgElementKind_CodeBlock,           /* `<pre><code>` */
     
-#line 270 "source/document.md"
+#line 307 "source/document.md"
     kMgElementKind_ScrapDef,
     
-#line 286 "source/document.md"
+#line 323 "source/document.md"
     kMgElementKind_MetaData,
     
-#line 294 "source/document.md"
+#line 331 "source/document.md"
     kMgElementKind_HtmlBlock,
     
-#line 221 "source/document.md"
+#line 258 "source/document.md"
                                  
     
-#line 241 "source/document.md"
+#line 278 "source/document.md"
     kMgElementKind_Em,                  /* `<em>` */
     kMgElementKind_Strong,              /* `<strong>` */
     kMgElementKind_InlineCode,          /* `<code>` */
     
-#line 279 "source/document.md"
+#line 316 "source/document.md"
     kMgElementKind_ScrapRef,
     
-#line 308 "source/document.md"
+#line 345 "source/document.md"
     kMgElementKind_LessThanEntity,      /* `&lt;` */
     kMgElementKind_GreaterThanEntity,   /* `&gt;` */
     kMgElementKind_AmpersandEntity,     /* `&amp;` */
     
-#line 318 "source/document.md"
+#line 355 "source/document.md"
     kMgElementKind_NewLine,             /* `"\n"` */
     
-#line 325 "source/document.md"
+#line 362 "source/document.md"
     kMgElementKind_Link,                /* `<a>` with href attribute */
     
-#line 351 "source/document.md"
+#line 388 "source/document.md"
     kMgElementKind_ReferenceLink,
     
-#line 222 "source/document.md"
+#line 259 "source/document.md"
                                 
     
-#line 301 "source/document.md"
+#line 338 "source/document.md"
     kMgElementKind_Text,
     
-#line 215 "source/document.md"
+#line 252 "source/document.md"
                          
     } MgElementKind;
     
-#line 338 "source/document.md"
+#line 375 "source/document.md"
     struct MgReferenceLinkT
     {
         MgString          id;
@@ -427,88 +275,66 @@
         MgReferenceLink*  next;
     };
     
-#line 359 "source/document.md"
+#line 396 "source/document.md"
     struct MgAttributeT
     {
         
-#line 373 "source/document.md"
+#line 410 "source/document.md"
     MgString              id;
     
-#line 378 "source/document.md"
+#line 415 "source/document.md"
     MgAttribute*          next;
     
-#line 361 "source/document.md"
+#line 398 "source/document.md"
                              
         union
         {
             
-#line 383 "source/document.md"
+#line 420 "source/document.md"
     MgString          val;
     
-#line 388 "source/document.md"
+#line 425 "source/document.md"
     MgReferenceLink*  referenceLink;
     MgScrap*          scrap;
     MgScrapFileGroup* scrapFileGroup;
     MgSourceLoc       sourceLoc;
     
-#line 364 "source/document.md"
+#line 401 "source/document.md"
                                        
         };
     };
     
-#line 398 "source/document.md"
+#line 435 "source/document.md"
     struct MgElementT
     {
         
-#line 406 "source/document.md"
+#line 443 "source/document.md"
     MgElementKind   kind;
     
-#line 412 "source/document.md"
+#line 449 "source/document.md"
     MgString        text;
     
-#line 417 "source/document.md"
+#line 454 "source/document.md"
     MgAttribute*    firstAttr;
     
-#line 422 "source/document.md"
+#line 459 "source/document.md"
     MgElement*      firstChild;
     MgElement*      next;
     
-#line 400 "source/document.md"
+#line 437 "source/document.md"
                            
     };
     
-#line 245 "source/main.md"
+#line 485 "source/document.md"
                                   
     
+#line 143 "source/main.md"
+                             
     
-    /*
+#line 125 "source/main.md"
+                    
     
-    Implementation
-    ==============
-    
-    After this point we have the implementation of the above API,
-    and then after *that* we have a driver application.
-    */
-    
-    
-#line 21 "source/main.md"
-    typedef int MgBool;
-    #define MG_TRUE     (1)
-    #define MG_FALSE    (0)
-    
-#line 29 "source/main.md"
-    #define MG_NULL     (0)
-    
-#line 34 "source/main.md"
-    struct MgLineT
-    {
-        MgString      text;
-        char const* originalBegin;
-    };
-    
-#line 257 "source/main.md"
-                            
-    
+#line 148 "source/main.md"
     
 #line 13 "source/reader.md"
     typedef struct MgReaderT
@@ -570,18 +396,23 @@
         return *(reader->cursor);
     }
     
-#line 259 "source/main.md"
+#line 148 "source/main.md"
                           
     
-    
-#line 17 "source/string.md"
+#line 23 "source/string.md"
     static MgBool MgIsEmptyString(
         MgString string)
     {
         return string.begin == string.end;
     }
     
-#line 26 "source/string.md"
+#line 32 "source/string.md"
+    MgString MgMakeEmptyString()
+    {
+        return MgMakeString(NULL, NULL);
+    }
+    
+#line 46 "source/string.md"
     MgString MgMakeString(
         char const* begin,
         char const* end)
@@ -592,20 +423,14 @@
         return result;
     }
     
-#line 39 "source/string.md"
-    MgString MgMakeEmptyString()
-    {
-        return MgMakeString(NULL, NULL);
-    }
-    
-#line 48 "source/string.md"
+#line 60 "source/string.md"
     MgString MgTerminatedString(
         char const* begin)
     {
         return MgMakeString(begin, begin + strlen(begin));
     }
     
-#line 57 "source/string.md"
+#line 74 "source/string.md"
     MgBool MgStringsAreEqual(
         MgString left,
         MgString right )
@@ -616,32 +441,32 @@
         for(;;)
         {
             
-#line 76 "source/string.md"
+#line 93 "source/string.md"
     MgBool leftAtEnd = leftCursor == left.end;
     MgBool rightAtEnd = rightCursor == right.end;
     if( leftAtEnd || rightAtEnd )
         return leftAtEnd == rightAtEnd;
     
-#line 66 "source/string.md"
+#line 83 "source/string.md"
                                         
             
-#line 84 "source/string.md"
+#line 101 "source/string.md"
     char leftChar = *leftCursor++;
     char rightChar = *rightCursor++;
     
-#line 67 "source/string.md"
+#line 84 "source/string.md"
                                           
             
-#line 88 "source/string.md"
+#line 105 "source/string.md"
     if( leftChar != rightChar )
         return MG_FALSE;
     
-#line 68 "source/string.md"
+#line 85 "source/string.md"
                                                
         }
     }
     
-#line 94 "source/string.md"
+#line 113 "source/string.md"
     MgBool MgStringsAreEqualNoCase(
         MgString left,
         MgString right )
@@ -652,34 +477,33 @@
         for(;;)
         {
             
-#line 76 "source/string.md"
+#line 93 "source/string.md"
     MgBool leftAtEnd = leftCursor == left.end;
     MgBool rightAtEnd = rightCursor == right.end;
     if( leftAtEnd || rightAtEnd )
         return leftAtEnd == rightAtEnd;
     
-#line 103 "source/string.md"
+#line 122 "source/string.md"
                                         
             
-#line 84 "source/string.md"
+#line 101 "source/string.md"
     char leftChar = *leftCursor++;
     char rightChar = *rightCursor++;
     
-#line 104 "source/string.md"
+#line 123 "source/string.md"
                                           
             
-#line 110 "source/string.md"
+#line 129 "source/string.md"
     if( tolower(leftChar) != tolower(rightChar) )
         return MG_FALSE;
     
-#line 105 "source/string.md"
+#line 124 "source/string.md"
                                                                 
         }
     }
     
-#line 261 "source/main.md"
+#line 149 "source/main.md"
                           
-    
     
 #line 5 "source/parse.md"
     enum
@@ -762,7 +586,7 @@
         MgString      val )
     {
         MgAttribute* attr = (MgAttribute*) malloc(sizeof(MgAttribute));
-        attr->next  = MG_NULL;
+        attr->next  = NULL;
         attr->id    = MgTerminatedString(id);
         attr->val   = val;
     
@@ -786,7 +610,7 @@
         MgElement*  element,
         char const* id)
     {
-        return MgAddAttribute(element, id, MgMakeString(MG_NULL, MG_NULL));
+        return MgAddAttribute(element, id, MgMakeString(NULL, NULL));
     }
     
     MgElement* MgCreateElementImpl(
@@ -797,9 +621,9 @@
         MgElement* element = (MgElement*) malloc(sizeof(MgElement));
         element->kind       = kind;
         element->text       = text;
-        element->firstAttr  = MG_NULL;
+        element->firstAttr  = NULL;
         element->firstChild = firstChild;
-        element->next       = MG_NULL;
+        element->next       = NULL;
         return element;
     }
     
@@ -813,7 +637,7 @@
         return MgCreateElementImpl(
             kind,
             text,
-            MG_NULL );  // no children
+            NULL );  // no children
     }
     
     /*
@@ -826,7 +650,7 @@
     {
         return MgCreateElementImpl(
             kind,
-            MgMakeString(MG_NULL, MG_NULL), // no text
+            MgMakeString(NULL, NULL), // no text
             firstChild );
     }
     
@@ -1049,9 +873,8 @@
         return sourceLoc;
     }
     
-#line 263 "source/main.md"
+#line 150 "source/main.md"
                            
-    
     
 #line 5 "source/parse-span.md"
     /*
@@ -1112,7 +935,7 @@
     void FlushSpan(
         SpanWriter* writer )
     {
-        MgElement* element = MG_NULL;
+        MgElement* element = NULL;
         if( writer->spanStart == writer->spanEnd )
             return;
     
@@ -1299,9 +1122,9 @@
         MgSpanFlags       flags,
         char            c )
     {
-        MgElement* inner = MG_NULL;
+        MgElement* inner = NULL;
         if( flags & kMgSpanFlag_DontProcessMarkdown )
-            return MG_NULL;
+            return NULL;
     
         // follow GitHub Flavored Markdown, in only
         // allowing underscores for <em> when
@@ -1312,7 +1135,7 @@
         {
             char prev = *(reader->cursor - 1);
             if( (c == '_') && !isspace(prev) )
-                return MG_NULL;            
+                return NULL;            
         }
     
         int count = 0;
@@ -1326,21 +1149,21 @@
             }
         }
         if( !count )
-            return MG_NULL;
+            return NULL;
     
         int e = MgPeekChar( reader );
         if( isspace(e) )
-            return MG_NULL; // can't start with white-space
+            return NULL; // can't start with white-space
     
         // appears to be the start of a span.
         // now we need to find the matching marker(s)
         char const* start = reader->cursor;
         char const* end = MgFindMatching( reader, c, count );
         if( !end )
-            return MG_NULL;
+            return NULL;
     
         if( (c == '_') && isalpha(MgPeekChar(reader)) )
-            return MG_NULL;
+            return NULL;
     
         // need to scan the inner text for other span markup
         inner = MgReadSpanElements( context, inputFile, line, MgMakeString(start, end), flags );
@@ -1389,9 +1212,9 @@
         MgReader*   reader,
         MgSpanFlags       flags )
     {
-        MgElement* inner = MG_NULL;
+        MgElement* inner = NULL;
         if( flags & kMgSpanFlag_DontProcessMarkdown )
-            return MG_NULL;
+            return NULL;
     
         int count = 0;
         for(; count < 2; ++count)
@@ -1404,7 +1227,7 @@
             }
         }
         if( !count )
-            return MG_NULL;
+            return NULL;
     
         // allow an optional space at start,
         // which will get trimmed
@@ -1419,7 +1242,7 @@
         char const* start = reader->cursor;
         char const* end = MgFindMatching( reader, '`', count );
         if( !end )
-            return MG_NULL;
+            return NULL;
     
         // allow an optional space at end
         // which will get trimmed
@@ -1455,8 +1278,8 @@
         int targetOpenBrace = MgGetChar( reader );
         if( targetOpenBrace == '(' )
         {
-            MgElement* inner    = MG_NULL;
-            MgElement* link     = MG_NULL;
+            MgElement* inner    = NULL;
+            MgElement* link     = NULL;
     
             // inline link
             char const* targetBegin = reader->cursor;
@@ -1630,9 +1453,8 @@
         return writer.firstElement;
     }
     
-#line 265 "source/main.md"
+#line 151 "source/main.md"
                                       
-    
     
 #line 5 "source/parse-block.md"
     typedef struct LineRangeT
@@ -2463,7 +2285,7 @@
     
         return MgCreateLeafElement(
             kMgElementKind_HorizontalRule,
-            MgMakeString(MG_NULL, MG_NULL) );
+            MgMakeString(NULL, NULL) );
     }
     
     MgElement* ParseHorizontalRule_Hypen(
@@ -2789,10 +2611,10 @@
         InitializeLineReader( &reader, firstLine );
     
         int c = MgGetChar( &reader );
-        if( c != '<' ) return MG_NULL;
+        if( c != '<' ) return NULL;
     
         int d = MgGetChar( &reader );
-        if( !isalpha(d) ) return MG_NULL;
+        if( !isalpha(d) ) return NULL;
     
         for(;;)
         {
@@ -2967,7 +2789,7 @@
         // a successful parse...
         return MgCreateLeafElement(
             kMgElementKind_Text,
-            MgMakeString(MG_NULL, MG_NULL));
+            MgMakeString(NULL, NULL));
     }
     
     int CountTableLinePipes(
@@ -3119,9 +2941,9 @@
         LineRange*  ioLineRange )
     {
         MgLine* headerLine      = GetLine( ioLineRange );
-        MgLine* alignmentLine   = MG_NULL;
-        MgLine* firstLine       = MG_NULL;
-        MgLine* lastLine        = MG_NULL;
+        MgLine* alignmentLine   = NULL;
+        MgLine* firstLine       = NULL;
+        MgLine* lastLine        = NULL;
         LineRange innerRange;
     
         int headerPipes = CountTableLinePipes( headerLine );
@@ -3177,19 +2999,19 @@
     {
         MgLine* firstLine = GetLine( ioLineRange );
         if( !firstLine )
-            return MG_NULL;
+            return NULL;
     
         MgReader reader;
         InitializeLineReader( &reader, firstLine );
     
         // meta-data line can't start with whitespace
         if( isspace(MgPeekChar(&reader)) )
-            return MG_NULL;
+            return NULL;
     
         // read until a ':'
         MgString key = MgFindMatchingString(&reader, ':', 1);
         if( !key.end )
-            return MG_NULL;
+            return NULL;
     
         MgString value = MgMakeString(reader.cursor, firstLine->text.end);
         TrimTrailingSpace(value.begin, &value.end);
@@ -3292,8 +3114,8 @@
     {
         // TODO: parse meta-data elements until no more matches
     
-        MgElement* firstElement = MG_NULL;
-        MgElement* lastElement  = MG_NULL;
+        MgElement* firstElement = NULL;
+        MgElement* lastElement  = NULL;
     
         LineRange lineRange = { beginLines, endLines };
         firstElement = ReadElement( context, inputFile, &lineRange );
@@ -3340,8 +3162,8 @@
         MgLine*         beginLines,
         MgLine*         endLines )
     {
-        MgElement* firstElement = MG_NULL;
-        MgElement* lastElement  = MG_NULL;
+        MgElement* firstElement = NULL;
+        MgElement* lastElement  = NULL;
     
         LineRange lineRange = { beginLines, endLines };
         for(;;)
@@ -3375,9 +3197,8 @@
         return firstElement;    
     }
     
-#line 267 "source/main.md"
+#line 152 "source/main.md"
                                        
-    
     
 #line 7 "source/writer.md"
     typedef struct MgWriterT MgWriter;
@@ -3458,9 +3279,8 @@
         *counter = 0;
     }
     
-#line 269 "source/main.md"
+#line 153 "source/main.md"
                           
-    
     
 #line 8 "source/export.md"
     MgAttribute* MgFindAttribute(
@@ -3509,7 +3329,6 @@
     {
         if( TextIsSameAsFileOnDisk(text, filePath) )
         {
-    //        fprintf(stderr, "Skipping export of \"%s\"\n", nameBuffer);
             return;
         }
     
@@ -3525,9 +3344,8 @@
         fclose(file);
     }
     
-#line 271 "source/main.md"
+#line 154 "source/main.md"
                           
-    
     
 #line 5 "source/export-code.md"
     void ExportScrapFileGroup(
@@ -3744,38 +3562,8 @@
         MgWriteTextToFile(outputText, nameBuffer);
     }
     
-    MgScrapNameGroup* MgGetFirstCodeFile(
-        MgContext* context)
-    {
-        MgScrapNameGroup* group = context->firstScrapNameGroup;
-        while( group && group->kind != kScrapKind_OutputFile )
-            group = group->next;
-        return group;
-    }
-    
-    MgScrapNameGroup* MgGetNextCodeFile(
-        MgScrapNameGroup* codeFile)
-    {
-        MgScrapNameGroup* group = codeFile ? codeFile->next : MG_NULL;
-        while( group && group->kind != kScrapKind_OutputFile )
-            group = group->next;
-        return group;
-    }
-    
-    void MgWriteAllCodeFiles(
-        MgContext* context)
-    {
-        MgScrapNameGroup* codeFile = MgGetFirstCodeFile( context );
-        while( codeFile )
-        {
-            MgWriteCodeFile( context, codeFile );
-            codeFile = MgGetNextCodeFile( codeFile );
-        }
-    }
-    
-#line 273 "source/main.md"
+#line 155 "source/main.md"
                                
-    
     
 #line 5 "source/export-html.md"
     void WriteElement(
@@ -4099,7 +3887,7 @@
             return element;
         }
     
-        return MG_NULL;
+        return NULL;
     }
     
     
@@ -4109,7 +3897,7 @@
         MgInputFile*    inputFile,
         const char*     key )
     {
-        MgElement* element = MG_NULL;
+        MgElement* element = NULL;
     
         // look for file-specific meta-data
         element = MgFindMetaDataInFile( inputFile, key );
@@ -4122,7 +3910,7 @@
             if( element ) return element;        
         }
     
-        return MG_NULL;
+        return NULL;
     }
     
     typedef void (*MgMetaDataFunc)(
@@ -4184,7 +3972,7 @@
     {
         // only look along the top-level "spine" of the document
         MgElement* element = firstElement;
-        MgElement* bestElement = MG_NULL;
+        MgElement* bestElement = NULL;
         for(; element; element = element->next)
         {
             switch(element->kind)
@@ -4316,40 +4104,10 @@
         free(outputFileName);
     }
     
-#line 275 "source/main.md"
+#line 156 "source/main.md"
                                
     
-    MgInputFile* MgGetFirstInputFile(
-        MgContext* context)
-    {
-        if( !context ) return 0;
-        return context->firstInputFile;
-    }
-    
-    MgInputFile* MgGetNextInputFile(
-        MgInputFile*  inputFile)
-    {
-        if( !inputFile ) return 0;
-        return inputFile->next;
-    }
-    
-    void MgWriteAllDocFiles(
-        MgContext* context )
-    {
-        MgInputFile* inputFile = MgGetFirstInputFile( context );
-        while( inputFile )
-        {
-            MgWriteDocFile( context, inputFile );
-            inputFile = MgGetNextInputFile( inputFile );
-        }
-    }
-    
-    
-    
-    
-    
-    /* Core Compilation Flow */
-    
+#line 5 "source/input.md"
     MgString ReadLineText(
         MgReader* reader )
     {
@@ -4480,117 +4238,6 @@
         inputFile->firstElement = firstElement;
     }
     
-    void MgInitialize(
-        MgContext*  context )
-    {
-        memset(context, 0, sizeof(*context));
-    }
-    
-    void MgFinalizeElements(
-        MgContext*      context,
-        MgElement*      firstElement );
-    
-    void MgFinalizeElement(
-        MgContext*      context,
-        MgElement*      element )
-    {
-        MgFinalizeElements( context, element->firstChild );
-    
-        MgAttribute* attr = element->firstAttr;
-        while( attr )
-        {
-            MgAttribute* next = attr->next;
-            free( attr );
-            attr = next;
-        }
-    }
-    
-    void MgFinalizeElements(
-        MgContext*      context,
-        MgElement*      firstElement )
-    {
-        MgElement* element = firstElement;
-        while( element )
-        {
-            MgElement* next = element->next;
-            MgFinalizeElement( context, element );
-            free( element );
-            element = next;
-        }
-    }
-    
-    void MgFinalizeInputFile(
-        MgContext*      context,
-        MgInputFile*    file)
-    {
-        if( file->allocatedFileData )
-            free( file->allocatedFileData );
-        if( file->beginLines )
-            free( file->beginLines );
-    
-        MgFinalizeElements( context, file->firstElement );
-    
-        MgReferenceLink* link = file->firstReferenceLink;
-        while( link )
-        {
-            MgReferenceLink* next = link->next;
-            free(link);
-            link = next;
-        }
-    }
-    
-    void MgFinalizeScrapFileGroup(
-        MgContext*          context,
-        MgScrapFileGroup*   group)
-    {
-        MgScrap* scrap = group->firstScrap;
-        while( scrap )
-        {
-            MgScrap* next = scrap->next;
-            // NOTE: the `body` of a scrap is already
-            // stored elsewhere in the document structure,
-            // so we don't free it here...
-            free( scrap );
-            scrap = next;
-        }
-    }
-    
-    void MgFinalizeScrapNameGroup(
-        MgContext*          context,
-        MgScrapNameGroup*   group)
-    {
-        MgScrapFileGroup* subGroup = group->firstFileGroup;
-        while( subGroup )
-        {
-            MgScrapFileGroup* next = subGroup->next;
-            MgFinalizeScrapFileGroup( context, subGroup );
-            free( subGroup );
-            subGroup = next;
-        }
-    }
-    
-    void MgFinalize(
-        MgContext*  context)
-    {
-        MgInputFile* file = context->firstInputFile;
-        while( file )
-        {
-            MgInputFile* next = file->next;
-            MgFinalizeInputFile( context, file );
-            free( file );
-            file = next;
-        }
-    
-        MgScrapNameGroup* group = context->firstScrapNameGroup;
-        while( group )
-        {
-            MgScrapNameGroup* next = group->next;
-            MgFinalizeScrapNameGroup( context, group );
-            free( group );
-            group = next;
-        }
-    }
-    
     MgInputFile* MgAllocateInputFile(
         MgContext*    context,
         const char* path,
@@ -4610,7 +4257,7 @@
     
         MgInputFile* inputFile = (MgInputFile*) malloc(sizeof(MgInputFile));
         if( !inputFile )
-            return MG_NULL;
+            return NULL;
         inputFile->path         = path;
         inputFile->text         = text;
         inputFile->firstElement = 0;
@@ -4633,7 +4280,7 @@
             textBegin,
             textEnd );
         if( !inputFile )
-            return MG_NULL;
+            return NULL;
     
         if( context->lastInputFile )
         {
@@ -4669,7 +4316,7 @@
         if( !fileData )
         {
             fprintf(stderr, "failed to allocate buffer for \"%s\"\n", path);        
-            return MG_NULL;
+            return NULL;
         }
         // we NULL-terminate the buffer just in case
         // (but the code should never rely on this)
@@ -4680,7 +4327,7 @@
         {
             fprintf(stderr, "failed to read from \"%s\"\n", path);
             free(fileData);
-            return MG_NULL;
+            return NULL;
         }
     
         *outSize = size;
@@ -4698,7 +4345,7 @@
         int size = 0;
         char* fileData = MgReadFileStreamContent( context, path, stream, &size );
         if( !fileData )
-            return MG_NULL;
+            return NULL;
     
         MgString text = { fileData, fileData + size };
         MgInputFile* inputFile = MgAddInputFileText(
@@ -4714,7 +4361,7 @@
         MgContext*    context,
         const char* path )
     {
-        FILE* stream = MG_NULL;
+        FILE* stream = NULL;
         if( !context )  return 0;
         if( !path )     return 0;
     
@@ -4741,7 +4388,7 @@
     {
         // don't allow multiple meta-data files
         if( context->metaDataFile )
-            return MG_NULL;
+            return NULL;
     
         MgInputFile* inputFile = MgAllocateInputFile(
             context,
@@ -4749,7 +4396,7 @@
             textBegin,
             textEnd );
         if( !inputFile )
-            return MG_NULL;
+            return NULL;
     
         context->metaDataFile = inputFile;
     
@@ -4770,7 +4417,7 @@
         int size = 0;
         char* fileData = MgReadFileStreamContent( context, path, stream, &size );
         if( !fileData )
-            return MG_NULL;
+            return NULL;
     
         MgString text = { fileData, fileData + size };
         MgInputFile* inputFile = MgAddMetaDataText(
@@ -4787,7 +4434,7 @@
         MgContext*  context,
         const char* path )
     {
-        FILE* stream = MG_NULL;
+        FILE* stream = NULL;
         if( !context )  return 0;
         if( !path )     return 0;
     
@@ -4806,13 +4453,10 @@
         return inputFile;
     }
     
-    /*
+#line 157 "source/main.md"
+                         
     
-    Application
-    ===========
-    
-    */
-    
+#line 6 "source/options.md"
     /* Command-Line Options */
     
     typedef struct OptionsT
@@ -4912,58 +4556,108 @@
         return 1;
     }
     
+#line 158 "source/main.md"
+                           
     
-#line 878 "source/main.md"
+#line 126 "source/main.md"
+                   
+    
+#line 127 "source/main.md"
+               
+    
+#line 7 "source/main.md"
     int main(
         int     argc,
         char**  argv )
     {
-        Options options;
-        InitializeOptions( &options );
+        
+#line 24 "source/main.md"
+    MgContext context;
+    memset(&context, 0, sizeof(context));
     
-        if( !ParseOptions( &options, &argc, argv ) )
-        {
+#line 11 "source/main.md"
+                      
+        
+#line 34 "source/main.md"
+    Options options;
+    InitializeOptions( &options );
     
-            fprintf(stderr, "usage: %s file1.md [...]", argv[0]);
-            exit(1);
-        }
+    if( !ParseOptions( &options, &argc, argv ) )
+    {
     
-        if( !argc )
-        {
-            fprintf(stderr, "no input files\n");
-            exit(0);
-        }
-    
-        int status = 0;
-    
-        // read all of the input files into the context
-        MgContext context;
-        MgInitialize( &context );
-    
-        //
-        if( options.metaDataFilePath )
-        {
-            MgAddMetaDataFile( &context, options.metaDataFilePath );
-        }
-    
-        for( int ii = 0; ii < argc; ++ii )
-        {
-            if( !MgAddInputFilePath( &context, argv[ii] ) )
-            {
-                status = 1;
-                continue;
-            }
-        }
-    
-        MgWriteAllCodeFiles( &context );
-    
-        MgWriteAllDocFiles( &context );
-    
-        MgFinalize( &context );
-    
-        return status;
+        fprintf(stderr, "usage: %s file1.md [...]", argv[0]);
+        exit(1);
     }
     
-#line 870 "source/main.md"
+    if( !argc )
+    {
+        fprintf(stderr, "no input files\n");
+        exit(0);
+    }
+    
+#line 12 "source/main.md"
+                         
+        
+#line 56 "source/main.md"
+    
+#line 62 "source/main.md"
+    if( options.metaDataFilePath )
+    {
+        MgAddMetaDataFile( &context, options.metaDataFilePath );
+    }
+    
+#line 56 "source/main.md"
+                                      
+    
+#line 71 "source/main.md"
+    for( int ii = 0; ii < argc; ++ii )
+    {
+        char const* path = argv[ii];
+        
+#line 80 "source/main.md"
+    if( !MgAddInputFilePath( &context, path ) )
+    {
+        exit(1);
+    }
+    
+#line 74 "source/main.md"
+                                           
+    }
+    
+#line 57 "source/main.md"
+                                 
+    
+#line 13 "source/main.md"
+                       
+        
+#line 91 "source/main.md"
+    
+#line 109 "source/main.md"
+    for( MgScrapNameGroup* group = context.firstScrapNameGroup; group; group = group->next )
+    {
+        if( group->kind != kScrapKind_OutputFile )
+            continue;
+    
+        MgWriteCodeFile( &context, group );
+    }
+    
+#line 91 "source/main.md"
+                               
+    
+#line 99 "source/main.md"
+    for( MgInputFile* file = context.firstInputFile; file; file = file->next )
+    {
+        MgWriteDocFile( &context, file );
+    }
+    
+#line 92 "source/main.md"
+                                        
+    
+#line 14 "source/main.md"
+                         
+        return 0;
+    }
+    
+#line 128 "source/main.md"
                        
     

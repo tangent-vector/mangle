@@ -82,7 +82,7 @@ Parsing
         MgString      val )
     {
         MgAttribute* attr = (MgAttribute*) malloc(sizeof(MgAttribute));
-        attr->next  = MG_NULL;
+        attr->next  = NULL;
         attr->id    = MgTerminatedString(id);
         attr->val   = val;
 
@@ -106,7 +106,7 @@ Parsing
         MgElement*  element,
         char const* id)
     {
-        return MgAddAttribute(element, id, MgMakeString(MG_NULL, MG_NULL));
+        return MgAddAttribute(element, id, MgMakeString(NULL, NULL));
     }
 
     MgElement* MgCreateElementImpl(
@@ -117,9 +117,9 @@ Parsing
         MgElement* element = (MgElement*) malloc(sizeof(MgElement));
         element->kind       = kind;
         element->text       = text;
-        element->firstAttr  = MG_NULL;
+        element->firstAttr  = NULL;
         element->firstChild = firstChild;
-        element->next       = MG_NULL;
+        element->next       = NULL;
         return element;
     }
 
@@ -133,7 +133,7 @@ Parsing
         return MgCreateElementImpl(
             kind,
             text,
-            MG_NULL );  // no children
+            NULL );  // no children
     }
 
     /*
@@ -146,7 +146,7 @@ Parsing
     {
         return MgCreateElementImpl(
             kind,
-            MgMakeString(MG_NULL, MG_NULL), // no text
+            MgMakeString(NULL, NULL), // no text
             firstChild );
     }
 

@@ -323,7 +323,7 @@ HTML Export
             return element;
         }
 
-        return MG_NULL;
+        return NULL;
     }
 
 
@@ -333,7 +333,7 @@ HTML Export
         MgInputFile*    inputFile,
         const char*     key )
     {
-        MgElement* element = MG_NULL;
+        MgElement* element = NULL;
 
         // look for file-specific meta-data
         element = MgFindMetaDataInFile( inputFile, key );
@@ -346,7 +346,7 @@ HTML Export
             if( element ) return element;        
         }
 
-        return MG_NULL;
+        return NULL;
     }
 
     typedef void (*MgMetaDataFunc)(
@@ -408,7 +408,7 @@ HTML Export
     {
         // only look along the top-level "spine" of the document
         MgElement* element = firstElement;
-        MgElement* bestElement = MG_NULL;
+        MgElement* bestElement = NULL;
         for(; element; element = element->next)
         {
             switch(element->kind)

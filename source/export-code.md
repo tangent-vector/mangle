@@ -215,32 +215,3 @@ Code Export
         MgString outputText = MgMakeString( outputBuffer, outputBuffer + outputSize );
         MgWriteTextToFile(outputText, nameBuffer);
     }
-
-    MgScrapNameGroup* MgGetFirstCodeFile(
-        MgContext* context)
-    {
-        MgScrapNameGroup* group = context->firstScrapNameGroup;
-        while( group && group->kind != kScrapKind_OutputFile )
-            group = group->next;
-        return group;
-    }
-
-    MgScrapNameGroup* MgGetNextCodeFile(
-        MgScrapNameGroup* codeFile)
-    {
-        MgScrapNameGroup* group = codeFile ? codeFile->next : MG_NULL;
-        while( group && group->kind != kScrapKind_OutputFile )
-            group = group->next;
-        return group;
-    }
-
-    void MgWriteAllCodeFiles(
-        MgContext* context)
-    {
-        MgScrapNameGroup* codeFile = MgGetFirstCodeFile( context );
-        while( codeFile )
-        {
-            MgWriteCodeFile( context, codeFile );
-            codeFile = MgGetNextCodeFile( codeFile );
-        }
-    }

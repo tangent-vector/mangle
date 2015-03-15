@@ -1,15 +1,26 @@
-Representing Documents
-======================
+Data Types
+==========
 
-This section describes the main in-memory data structures used by Mangle.
+This section describes the main in-memory data types used by Mangle.
 The parsing code generates data structures to represent one or more input files, and the export code walks over those structures to generate formatted code or documentation.
+
+Boolean Values
+--------------
+
+We define our own Boolean type, since we are using C and can't assume C11.
+
+    <<document type declarations>>+=
+    typedef int MgBool;
+    #define MG_TRUE     (1)
+    #define MG_FALSE    (0)
+
 
 Source Locations
 ----------------
 
 The `SourceLoc` type represents a location within a source file, as a line and column number.
 
-    <<global:document type declarations>>=
+    <<document type declarations>>=
     typedef struct MgSourceLocT
     {
         int line;
@@ -164,6 +175,32 @@ TODO: the following declaration should be moved over with `Context`:
 
     <<scrap name group members>>+=
     MgScrapNameGroup*   next;
+
+Input Lines
+-----------
+
+We use the `MgLine` type for lines that have been loaded into memory.
+
+    <<document type declarations>>+=
+    struct MgLineT
+    {
+        MgString      text;
+        char const* originalBegin;
+    };
+
+Initially, `text.begin` and `text.end` point at the start of the line, and
+just before the line-ending terminator (if any). The `originalBegin` field
+always points at the very start of the line as stored on disk.
+
+During parsing, routines that recognize a pattern might "trim" characters
+from the beginning (or end, potentially) of the line so that further passes
+see only a subset of characters. For example, when parsing a block quote,
+with a prefix of `"> "`, we advance the `begin` pointer by two characters
+before recursively parsing the quoted text.
+
+This design lets us avoid making a lot of copies of data during parsing,
+so that we can instead just use the original buffer of the file contents.
+
 
 Input Files
 -----------
@@ -434,8 +471,15 @@ In order to satisfy the C compiler, we occasionally need to insert a forward dec
 
     <<global: document forward declarations>>=
     typedef struct MgAttributeT         MgAttribute;
+    typedef struct MgContextT           MgContext;
     typedef struct MgElementT           MgElement;
+    typedef struct MgInputFileT         MgInputFile;
     typedef struct MgLineT              MgLine;
     typedef struct MgReferenceLinkT     MgReferenceLink;
     typedef struct MgScrapT             MgScrap;
     typedef struct MgScrapFileGroupT    MgScrapFileGroup;
+    typedef struct MgScrapNameGroupT    MgScrapNameGroup;
+
+    <<global:document declarations>>=
+    <<document forward declarations>>
+    <<document type declarations>>

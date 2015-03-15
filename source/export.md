@@ -61,7 +61,6 @@ builds for build systems that check file modification times (e.g., `make`).
     {
         if( TextIsSameAsFileOnDisk(text, filePath) )
         {
-    //        fprintf(stderr, "Skipping export of \"%s\"\n", nameBuffer);
             return;
         }
 

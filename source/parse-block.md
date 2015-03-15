@@ -830,7 +830,7 @@ Parsing Block-Level Elements
 
         return MgCreateLeafElement(
             kMgElementKind_HorizontalRule,
-            MgMakeString(MG_NULL, MG_NULL) );
+            MgMakeString(NULL, NULL) );
     }
 
     MgElement* ParseHorizontalRule_Hypen(
@@ -1156,10 +1156,10 @@ Parsing Block-Level Elements
         InitializeLineReader( &reader, firstLine );
 
         int c = MgGetChar( &reader );
-        if( c != '<' ) return MG_NULL;
+        if( c != '<' ) return NULL;
 
         int d = MgGetChar( &reader );
-        if( !isalpha(d) ) return MG_NULL;
+        if( !isalpha(d) ) return NULL;
 
         for(;;)
         {
@@ -1334,7 +1334,7 @@ Parsing Block-Level Elements
         // a successful parse...
         return MgCreateLeafElement(
             kMgElementKind_Text,
-            MgMakeString(MG_NULL, MG_NULL));
+            MgMakeString(NULL, NULL));
     }
 
     int CountTableLinePipes(
@@ -1486,9 +1486,9 @@ Parsing Block-Level Elements
         LineRange*  ioLineRange )
     {
         MgLine* headerLine      = GetLine( ioLineRange );
-        MgLine* alignmentLine   = MG_NULL;
-        MgLine* firstLine       = MG_NULL;
-        MgLine* lastLine        = MG_NULL;
+        MgLine* alignmentLine   = NULL;
+        MgLine* firstLine       = NULL;
+        MgLine* lastLine        = NULL;
         LineRange innerRange;
 
         int headerPipes = CountTableLinePipes( headerLine );
@@ -1544,19 +1544,19 @@ Parsing Block-Level Elements
     {
         MgLine* firstLine = GetLine( ioLineRange );
         if( !firstLine )
-            return MG_NULL;
+            return NULL;
 
         MgReader reader;
         InitializeLineReader( &reader, firstLine );
 
         // meta-data line can't start with whitespace
         if( isspace(MgPeekChar(&reader)) )
-            return MG_NULL;
+            return NULL;
 
         // read until a ':'
         MgString key = MgFindMatchingString(&reader, ':', 1);
         if( !key.end )
-            return MG_NULL;
+            return NULL;
 
         MgString value = MgMakeString(reader.cursor, firstLine->text.end);
         TrimTrailingSpace(value.begin, &value.end);
@@ -1659,8 +1659,8 @@ Parsing Block-Level Elements
     {
         // TODO: parse meta-data elements until no more matches
 
-        MgElement* firstElement = MG_NULL;
-        MgElement* lastElement  = MG_NULL;
+        MgElement* firstElement = NULL;
+        MgElement* lastElement  = NULL;
 
         LineRange lineRange = { beginLines, endLines };
         firstElement = ReadElement( context, inputFile, &lineRange );
@@ -1707,8 +1707,8 @@ Parsing Block-Level Elements
         MgLine*         beginLines,
         MgLine*         endLines )
     {
-        MgElement* firstElement = MG_NULL;
-        MgElement* lastElement  = MG_NULL;
+        MgElement* firstElement = NULL;
+        MgElement* lastElement  = NULL;
 
         LineRange lineRange = { beginLines, endLines };
         for(;;)

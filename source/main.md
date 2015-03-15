@@ -1,133 +1,165 @@
-Mangle: A Literate Programming Tool
-===================================
+The Main Entry Point
+====================
 
-Mangle is a tool for literate programming using Markdown
-together with C-like languages. Please see the README.md
-file if you want to know how to use Mangle as a command-
-line tool, and to understand the kind of syntax it expects.
-This header file will only document the library interface
-to Mangle's internals, for the benefit of anybody who
-wants to build on or improve it.
+The overall flow of the program is to perform initialization, parse command-line options, read input files, write output files, and finally clean up.
 
+    <<`main` function>>=
+    int main(
+        int     argc,
+        char**  argv )
+    {
+        <<initialize>>
+        <<parse options>>
+        <<read inputs>>
+        <<write outputs>>
+        return 0;
+    }
 
-Utilities
+Initialization
+--------------
+
+The `Context` type is defined so that it is valid when zero-initialized.
+
+    <<initialize>>=
+    MgContext context;
+    memset(&context, 0, sizeof(context));
+
+Note that there is no corresponding clean-up or "finalization" work at the end of `main`.
+Since the program is about to exit anyway, releasing all the memory we've allocated would only take more code/time and not actually provide any benefit.
+
+Parsing Command-Line Options
+----------------------------
+
+    <<parse options>>=
+    Options options;
+    InitializeOptions( &options );
+
+    if( !ParseOptions( &options, &argc, argv ) )
+    {
+
+        fprintf(stderr, "usage: %s file1.md [...]", argv[0]);
+        exit(1);
+    }
+
+    if( !argc )
+    {
+        fprintf(stderr, "no input files\n");
+        exit(0);
+    }
+
+Reading Input
+-------------
+
+To read the input, we first read a meta-data file, if needed, and then any ordinary input files.
+
+    <<read inputs>>=
+    <<read meta data file, if needed>>
+    <<read ordinary input files>>
+
+We only read a meta-data file if the user has specified one on the command line.
+
+    <<read meta data file, if needed>>=
+    if( options.metaDataFilePath )
+    {
+        MgAddMetaDataFile( &context, options.metaDataFilePath );
+    }
+
+We read input files by looping over the argument array.
+The options-parsing code will have updated `argc` and `argv` to filter out everything other than input files.
+
+    <<read ordinary input files>>=
+    for( int ii = 0; ii < argc; ++ii )
+    {
+        char const* path = argv[ii];
+        <<read one input file from `path`>>
+    }
+
+If we encounter an error while reading an input file, we exit immediately.
+
+    <<read one input file from `path`>>=
+    if( !MgAddInputFilePath( &context, path ) )
+    {
+        exit(1);
+    }
+
+Writing Output
+--------------
+
+To write the output, we first write out any code files, and then any documentation files.
+
+    <<write outputs>>=
+    <<write output code files>>
+    <<write output documentation files>>
+
+### Documentation ###
+
+In order to output documentation, we simply loop over all of the input files attached to the context, and write one HTML document for each.
+
+    <<write output documentation files>>=
+    for( MgInputFile* file = context.firstInputFile; file; file = file->next )
+    {
+        MgWriteDocFile( &context, file );
+    }
+
+### Code ###
+
+In order to write the output code, we loop over all the scrap groups that were found during parsing, outputing only those with the `file:` kind.
+
+    <<write output code files>>=
+    for( MgScrapNameGroup* group = context.firstScrapNameGroup; group; group = group->next )
+    {
+        if( group->kind != kScrapKind_OutputFile )
+            continue;
+
+        MgWriteCodeFile( &context, group );
+    }
+
+Packaging
 ---------
 
-First we have common stuff shared across multiple code files.
-
-We define our own Boolean type, since we are using C and can't assume C11.
-
-    <<utility declarations>>+=
-    typedef int MgBool;
-    #define MG_TRUE     (1)
-    #define MG_FALSE    (0)
-
-We define our own `NULL`, in case we ever want to compile this code without
-including `<stdlib.h>`.
-
-    <<utility declarations>>+=
-    #define MG_NULL     (0)
-
-We use the `MgLine` type for lines that have been loaded into memory.
-
-    <<utility declarations>>+=
-    struct MgLineT
-    {
-        MgString      text;
-        char const* originalBegin;
-    };
-
-Initially, `text.begin` and `text.end` point at the start of the line, and
-just before the line-ending terminator (if any). The `originalBegin` field
-always points at the very start of the line as stored on disk.
-
-During parsing, routines that recognize a pattern might "trim" characters
-from the beginning (or end, potentially) of the line so that further passes
-see only a subset of characters. For example, when parsing a block quote,
-with a prefix of `"> "`, we advance the `begin` pointer by two characters
-before recursively parsing the quoted text.
-
-This design lets us avoid making a lot of copies of data during parsing,
-so that we can instead just use the original buffer of the file contents.
-
-
-
-Here we go:
+In order to make Mangle easy to deploy, all of its code will be placed in a single `.c` file.
 
     <<file:mangle.c>>=
     <<license>>
+    <<includes>>
+    <<declarations>>
+    <<definitions>>
+    <<globals>>
+    <<`main` function>>
 
+### Includes ###
+
+    <<includes>>=
     #include <assert.h>
     #include <ctype.h>
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
 
-    /* API */
+### Declarations ###
 
-    /*
-    
-    ## Context ##
+    <<declarations>>=
+    <<string declarations>>
+    <<document declarations>>
 
-    All of the state for operations you do with Mangle gets
-    stored in a `MgContext`. The contents of this type
-    are laid bare at later in this file, but you shouldn't
-    need to rely on those details as a client of the API.
-    */
-    typedef struct MgContextT MgContext;
+### Definitions ###
 
-    /*
-    Before using other Mangle functions, you must initialize
-    the context with `MgInitialize`, and when you are
-    done you ought to call `MgFinalize` to let the
-    library clean up any memory it has allocated.
-    */
+    <<definitions>>=
+    <<reader definitions>>
+    <<string definitions>>
+    <<parsing definitions>>
+    <<span-level parsing definitions>>
+    <<block-level parsing definitions>>
+    <<writer definitions>>
+    <<export definitions>>
+    <<code export definitions>>
+    <<HTML export definitions>>
+    <<input definitions>>
+    <<options definitions>>
 
-    void MgInitialize(
-        MgContext*  context );
 
-    void MgFinalize(
-        MgContext*  context);
-
-    /*
-    ## Input Files ##
-
-    After initializing a context, you then need to read in
-    one or more files containing literate program code.
-    The type `MgInputFile` represents an input file,
-    which will ultimately be in a one-to-one relationship
-    with output documentation files.
-    */
-
-    typedef struct MgInputFileT MgInputFile;
-
-    /*
-    The fundamental entry point for adding input files to
-    the context is `MgAddInputFileText`. You can use
-    this function directly, or one of the convenience
-    routines that follows:
-    */
-
-    MgInputFile* MgAddInputFileText(
-        MgContext*  context,
-        const char* path,       /* path to use when picking output file name/path */
-        const char* textBegin,  /* pointer to start of text buffer */
-        const char* textEnd );  /* pointer to end of text buffer, or NULL if buffer is NULL-terminated */
-
-    /*
-    In the common case, the input might be files on disk, so
-    you can just use `MgAddInputFileStream` or
-    `MgAddInputFilePath` instead.
-    */
-
-    MgInputFile* MgAddInputFileStream(
-        MgContext*  context,
-        const char* path,
-        FILE*       stream );
-
-    MgInputFile* MgAddInputFilePath(
-        MgContext*  context,
-        const char* path );
+Junk
+----
 
     /*
     ## Meta-Data ##
@@ -140,16 +172,6 @@ Here we go:
     not be added to the linked list of input documents.
     */
 
-    MgInputFile* MgAddMetaDataText(
-        MgContext*  context,
-        const char* path,
-        const char* textBegin,
-        const char* textEnd );
-
-    MgInputFile* MgAddMetaDataFile(
-        MgContext*  context,
-        const char* path );
-
     /*
     ## Output ##
 
@@ -160,53 +182,7 @@ Here we go:
     same identifier are grouped together, and some of these
     groups represent source files that should be compiled
     to create a program.
-
-    Once you are done adding input files, you can begin to
-    export documentation and code files. The simplest way
-    to do this is with `MgWriteAllDocFiles` and
-    `MgWriteAllCodeFiles`.
     */
-
-    #ifndef MANGLE_NO_STDIO
-    void MgWriteAllDocFiles(
-        MgContext* context );
-
-    void MgWriteAllCodeFiles(
-        MgContext* context );
-    #endif
-
-    /*
-    If this isn't suitable for your needs, you can instead
-    iterate over the relevant files yourself.
-
-    Input files can be iterated using `MgGetFirstInputFile`
-    and `MgGetNextInputFile`, or by just hanging on to
-    the pointer returned by `MgAddInputFile*`:
-    */
-
-    MgInputFile* MgGetFirstInputFile(
-        MgContext* context );
-
-    MgInputFile* MgGetNextInputFile(
-        MgInputFile* inputFile );
-
-    /*
-    Similarly, you can iterate over the output code files that
-    were specified in the literate program, by using
-    `MgGetFirstCodeFile` and `MgGetNextCodeFile`.
-
-    Note that output code files are just a special case of
-    "scrap groups," so this is really just a specialized
-    iterator over a subset of those:
-    */
-    typedef struct MgScrapNameGroupT MgScrapNameGroup;
-
-    MgScrapNameGroup* MgGetFirstCodeFile(
-        MgContext* context );
-
-    MgScrapNameGroup* MgGetNextCodeFile(
-        MgScrapNameGroup* codeFile );
-
     /*
     Once you have the pointer to the input file or code file, you can
     use one of the following functions to output it to a file.
@@ -225,703 +201,4 @@ Here we go:
     haven't really changed, causing build systems that look
     at modification times to get confused.
     */
-
-    void MgWriteDocFile(
-        MgContext*      context,
-        MgInputFile*    inputFile);
-
-    void MgWriteCodeFile(
-        MgContext*          context,
-        MgScrapNameGroup*   codeFile );
-
-    /*
-    TODO: lower-level routines for output to buffer/FILE*.
-    */
-
-    <<document forward declarations>>
-
-    <<string declarations>>
-
-    <<document type declarations>>
-
-
-    /*
-
-    Implementation
-    ==============
-
-    After this point we have the implementation of the above API,
-    and then after *that* we have a driver application.
-    */
-
-    <<utility declarations>>
-
-    <<reader definitions>>
-
-    <<string definitions>>
-
-    <<parsing definitions>>
-
-    <<span-level parsing definitions>>
-
-    <<block-level parsing definitions>>
-
-    <<writer definitions>>
-
-    <<export definitions>>
-
-    <<code export definitions>>
-
-    <<HTML export definitions>>
-
-    MgInputFile* MgGetFirstInputFile(
-        MgContext* context)
-    {
-        if( !context ) return 0;
-        return context->firstInputFile;
-    }
-
-    MgInputFile* MgGetNextInputFile(
-        MgInputFile*  inputFile)
-    {
-        if( !inputFile ) return 0;
-        return inputFile->next;
-    }
-
-    void MgWriteAllDocFiles(
-        MgContext* context )
-    {
-        MgInputFile* inputFile = MgGetFirstInputFile( context );
-        while( inputFile )
-        {
-            MgWriteDocFile( context, inputFile );
-            inputFile = MgGetNextInputFile( inputFile );
-        }
-    }
-
-
-
-
-
-    /* Core Compilation Flow */
-
-    MgString ReadLineText(
-        MgReader* reader )
-    {
-        char const* textBegin = reader->cursor;
-        char const* textEnd = textBegin;
-
-        for(;;)
-        {
-            int c, d;
-            c = MgGetChar(reader);
-            switch( c )
-            {
-            default:
-                textEnd = reader->cursor;
-                continue;
-
-            case '\r':
-            case '\n':
-                d = MgGetChar(reader);
-                if( (c ^ d) != ('\r' ^ '\n') )
-                {
-                    MgUnGetChar(reader, d);
-                }
-
-                // fall-through:
-            case -1:
-                // either a newline or the end of the file
-                return MgMakeString(textBegin, textEnd);
-            }
-        }    
-    }
-
-    void ReadLine(
-        MgReader*   reader,
-        MgLine*         line )
-    {
-        MgString text = ReadLineText( reader );
-        line->originalBegin = text.begin;
-        line->text.begin = text.begin;
-        line->text.end   = text.end;
-    }
-
-    void ReadLines(
-        MgReader*   reader,
-        MgLine*         beginLines,
-        MgLine*         endLines )
-    {
-        MgLine* lineCursor = beginLines;
-
-        // always at least one line
-        ReadLine( reader, lineCursor++ );
-        while(!MgAtEnd(reader))
-        {
-            ReadLine( reader, lineCursor++ );
-        }
-    }
-
-    int MgCountLinesInString(
-        MgString string )
-    {
-        MgReader reader;
-        MgInitializeStringReader( &reader, string );
-
-        // always at least one line
-        MgString lineText = ReadLineText( &reader );
-        int lineCount = 1;
-        while(!MgAtEnd(&reader))
-        {
-            lineText = ReadLineText( &reader );
-            ++lineCount;
-        }
-        return lineCount;
-    }
-
-    void MgReadLinesFromString(
-        MgString  string,
-        MgLine* beginLines,
-        MgLine* endLines )
-    {
-        MgReader reader;
-        MgInitializeStringReader( &reader, string );
-        ReadLines( &reader, beginLines, endLines );
-    }
-
-    //
-
-    void MgReadLines(
-        MgContext*      context,
-        MgInputFile*    inputFile )
-    {
-        int lineCount = MgCountLinesInString( inputFile->text );
-        MgLine* beginLines = (MgLine*) malloc(lineCount * sizeof(MgLine));
-        MgLine* endLines = beginLines + lineCount;
-        inputFile->beginLines = beginLines;
-        inputFile->endLines = endLines;
-
-        MgReadLinesFromString(
-            inputFile->text,
-            beginLines,
-            endLines );    
-    }
-
-    void MgParseInputFileText(
-        MgContext*      context,
-        MgInputFile*    inputFile )
-    {
-        MgReadLines( context, inputFile );
-
-        MgElement* firstElement = MgParseBlockElements(
-            context,
-            inputFile,
-            inputFile->beginLines,
-            inputFile->endLines );
-        inputFile->firstElement = firstElement;
-    }
-
-    void MgParseMetaDataText(
-        MgContext*      context,
-        MgInputFile*    inputFile )
-    {
-        MgReadLines( context, inputFile );
-
-        MgElement* firstElement = MgParseMetaDataElements(
-            context,
-            inputFile,
-            inputFile->beginLines,
-            inputFile->endLines );
-        inputFile->firstElement = firstElement;
-    }
-
-    void MgInitialize(
-        MgContext*  context )
-    {
-        memset(context, 0, sizeof(*context));
-    }
-
-    void MgFinalizeElements(
-        MgContext*      context,
-        MgElement*      firstElement );
-
-    void MgFinalizeElement(
-        MgContext*      context,
-        MgElement*      element )
-    {
-        MgFinalizeElements( context, element->firstChild );
-
-        MgAttribute* attr = element->firstAttr;
-        while( attr )
-        {
-            MgAttribute* next = attr->next;
-            free( attr );
-            attr = next;
-        }
-    }
-
-    void MgFinalizeElements(
-        MgContext*      context,
-        MgElement*      firstElement )
-    {
-        MgElement* element = firstElement;
-        while( element )
-        {
-            MgElement* next = element->next;
-            MgFinalizeElement( context, element );
-            free( element );
-            element = next;
-        }
-    }
-
-    void MgFinalizeInputFile(
-        MgContext*      context,
-        MgInputFile*    file)
-    {
-        if( file->allocatedFileData )
-            free( file->allocatedFileData );
-        if( file->beginLines )
-            free( file->beginLines );
-
-        MgFinalizeElements( context, file->firstElement );
-
-        MgReferenceLink* link = file->firstReferenceLink;
-        while( link )
-        {
-            MgReferenceLink* next = link->next;
-            free(link);
-            link = next;
-        }
-    }
-
-    void MgFinalizeScrapFileGroup(
-        MgContext*          context,
-        MgScrapFileGroup*   group)
-    {
-        MgScrap* scrap = group->firstScrap;
-        while( scrap )
-        {
-            MgScrap* next = scrap->next;
-            // NOTE: the `body` of a scrap is already
-            // stored elsewhere in the document structure,
-            // so we don't free it here...
-            free( scrap );
-            scrap = next;
-        }
-    }
-
-    void MgFinalizeScrapNameGroup(
-        MgContext*          context,
-        MgScrapNameGroup*   group)
-    {
-        MgScrapFileGroup* subGroup = group->firstFileGroup;
-        while( subGroup )
-        {
-            MgScrapFileGroup* next = subGroup->next;
-            MgFinalizeScrapFileGroup( context, subGroup );
-            free( subGroup );
-            subGroup = next;
-        }
-    }
-
-    void MgFinalize(
-        MgContext*  context)
-    {
-        MgInputFile* file = context->firstInputFile;
-        while( file )
-        {
-            MgInputFile* next = file->next;
-            MgFinalizeInputFile( context, file );
-            free( file );
-            file = next;
-        }
-
-        MgScrapNameGroup* group = context->firstScrapNameGroup;
-        while( group )
-        {
-            MgScrapNameGroup* next = group->next;
-            MgFinalizeScrapNameGroup( context, group );
-            free( group );
-            group = next;
-        }
-    }
-
-    MgInputFile* MgAllocateInputFile(
-        MgContext*    context,
-        const char* path,
-        const char* textBegin,
-        const char* textEnd )
-    {
-        if( !context )      return 0;
-        if( !path )         return 0;
-        if( !textBegin )    return 0;
-
-        if( !textEnd )
-        {
-            textEnd = textBegin + strlen(textBegin);
-        }
-
-        MgString text = { textBegin, textEnd };
-
-        MgInputFile* inputFile = (MgInputFile*) malloc(sizeof(MgInputFile));
-        if( !inputFile )
-            return MG_NULL;
-        inputFile->path         = path;
-        inputFile->text         = text;
-        inputFile->firstElement = 0;
-        inputFile->next         = 0;
-        inputFile->allocatedFileData = 0;
-        inputFile->firstReferenceLink = 0;
-
-        return inputFile;
-    }
-
-    MgInputFile* MgAddInputFileText(
-        MgContext*    context,
-        const char* path,
-        const char* textBegin,
-        const char* textEnd )
-    {
-        MgInputFile* inputFile = MgAllocateInputFile(
-            context,
-            path,
-            textBegin,
-            textEnd );
-        if( !inputFile )
-            return MG_NULL;
-
-        if( context->lastInputFile )
-        {
-            context->lastInputFile->next = inputFile;
-        }
-        else
-        {
-            context->firstInputFile = inputFile;
-        }
-        context->lastInputFile = inputFile;
-
-        MgParseInputFileText(
-            context,
-            inputFile );
-
-        return inputFile;
-    }
-
-    char* MgReadFileStreamContent(
-        MgContext*  context,
-        char const* path,
-        FILE*       stream,
-        int*        outSize )
-    {
-        int begin = ftell(stream);
-        fseek(stream, 0, SEEK_END);
-        int end = ftell(stream);
-        fseek(stream, begin, SEEK_SET);
-        int size = end - begin;
-
-        // allocate buffer for input file
-        char* fileData = (char*) malloc(size + 1);
-        if( !fileData )
-        {
-            fprintf(stderr, "failed to allocate buffer for \"%s\"\n", path);        
-            return MG_NULL;
-        }
-        // we NULL-terminate the buffer just in case
-        // (but the code should never rely on this)
-        fileData[size] = 0;
-
-        int sizeRead = fread(fileData, 1, size, stream);
-        if( sizeRead != size )
-        {
-            fprintf(stderr, "failed to read from \"%s\"\n", path);
-            free(fileData);
-            return MG_NULL;
-        }
-
-        *outSize = size;
-        return fileData;
-    }
-
-    MgInputFile* MgAddInputFileStream(
-        MgContext*  context,
-        char const* path,
-        FILE*       stream )
-    {
-        if( !context )  return 0;
-        if( !stream )   return 0;
-
-        int size = 0;
-        char* fileData = MgReadFileStreamContent( context, path, stream, &size );
-        if( !fileData )
-            return MG_NULL;
-
-        MgString text = { fileData, fileData + size };
-        MgInputFile* inputFile = MgAddInputFileText(
-            context,
-            path,
-            fileData,
-            fileData + size );
-        inputFile->allocatedFileData = fileData;
-        return inputFile;
-    }
-
-    MgInputFile* MgAddInputFilePath(
-        MgContext*    context,
-        const char* path )
-    {
-        FILE* stream = MG_NULL;
-        if( !context )  return 0;
-        if( !path )     return 0;
-
-        stream = fopen(path, "rb");
-        if( !stream )
-        {
-            fprintf(stderr, "mangle: failed to open \"%s\" for reading\n", path);
-            return 0;
-        }
-
-        MgInputFile* inputFile = MgAddInputFileStream(
-            context,
-            path,
-            stream );
-        fclose(stream);
-        return inputFile;
-    }
-
-    MgInputFile* MgAddMetaDataText(
-        MgContext*  context,
-        const char* path,
-        const char* textBegin,
-        const char* textEnd )
-    {
-        // don't allow multiple meta-data files
-        if( context->metaDataFile )
-            return MG_NULL;
-
-        MgInputFile* inputFile = MgAllocateInputFile(
-            context,
-            path,
-            textBegin,
-            textEnd );
-        if( !inputFile )
-            return MG_NULL;
-
-        context->metaDataFile = inputFile;
-
-        MgParseMetaDataText(
-            context,
-            inputFile );
-        return inputFile;
-    }
-
-    MgInputFile* MgAddMetaDataFileStream(
-        MgContext*  context,
-        const char* path,
-        FILE*       stream )
-    {
-        if( !context )  return 0;
-        if( !stream )   return 0;
-
-        int size = 0;
-        char* fileData = MgReadFileStreamContent( context, path, stream, &size );
-        if( !fileData )
-            return MG_NULL;
-
-        MgString text = { fileData, fileData + size };
-        MgInputFile* inputFile = MgAddMetaDataText(
-            context,
-            path,
-            fileData,
-            fileData + size );
-        inputFile->allocatedFileData = fileData;
-        return inputFile;
-    }
-
-
-    MgInputFile* MgAddMetaDataFile(
-        MgContext*  context,
-        const char* path )
-    {
-        FILE* stream = MG_NULL;
-        if( !context )  return 0;
-        if( !path )     return 0;
-
-        stream = fopen(path, "rb");
-        if( !stream )
-        {
-            fprintf(stderr, "mangle: failed to open \"%s\" for reading\n", path);
-            return 0;
-        }
-
-        MgInputFile* inputFile = MgAddMetaDataFileStream(
-            context,
-            path,
-            stream );
-        fclose(stream);
-        return inputFile;
-    }
-
-    /*
-
-    Application
-    ===========
-
-    */
-
-    /* Command-Line Options */
-
-    typedef struct OptionsT
-    {
-        char const* executableName;
-        char const* docOutputPath;
-        char const* sourceOutputPath;
-        char const* metaDataFilePath;
-    } Options;
-
-    void InitializeOptions(
-        Options*    options )
-    {
-        options->executableName     = "mangle";
-        options->docOutputPath      = 0;
-        options->sourceOutputPath   = 0;
-        options->metaDataFilePath   = 0;
-    }
-
-    int ParseOptions(
-        Options*    options,
-        int*        ioArgCount,
-        char**      argv )
-    {
-        int     remaining   = *ioArgCount;
-        char**  readCursor  = argv;
-
-        char**  writeCursor = argv;
-        int     outArgCount = 0;
-
-        if( remaining > 0 )
-        {
-            options->executableName = *readCursor++;
-            --remaining;
-        }
-
-        while(remaining)
-        {
-            char* option = *readCursor++;
-            --remaining;
-
-            if( option[0] == '-' )
-            {
-                if( option[1] == '-' )
-                {
-                    if( option[2] == 0 )
-                    {
-                        // treat an `--` option as marking the end of the list
-                        break;
-                    }
-                    else if( strcmp(option+2, "meta") == 0 )
-                    {
-                        // meta-data file
-                        if( remaining != 0 )
-                        {
-                            options->metaDataFilePath = *readCursor++;
-                            --remaining;
-                            continue;
-                        }
-                        else
-                        {
-                            fprintf(stderr, "expected argument for option %s\n", option);
-                            return 0;
-                        }
-                    }
-                    else
-                    {
-                        fprintf(stderr, "unknown option: %s\n", option);
-                        return 0;
-                    }
-                }
-                else
-                {
-                    // If we wanted to allow "short" options, this is where
-                    // they would be processed.
-
-                    fprintf(stderr, "unknown option: %s\n", option);
-                    return 0;
-                }
-            }
-
-            // default logic
-            *writeCursor++ = option;
-            ++outArgCount;
-        }
-
-        // pass through any options after `--` without inspecting them
-        while( remaining )
-        {
-            char* option = *readCursor++;
-            --remaining;
-            *writeCursor++ = option;
-            ++outArgCount;
-        }
-
-        *ioArgCount = outArgCount;
-        return 1;
-    }
-
-    <<`main` function>>
-
-
-The Main Entry Point
-====================
-
-
-    <<`main` function>>=
-    int main(
-        int     argc,
-        char**  argv )
-    {
-        Options options;
-        InitializeOptions( &options );
-
-        if( !ParseOptions( &options, &argc, argv ) )
-        {
-
-            fprintf(stderr, "usage: %s file1.md [...]", argv[0]);
-            exit(1);
-        }
-
-        if( !argc )
-        {
-            fprintf(stderr, "no input files\n");
-            exit(0);
-        }
-
-        int status = 0;
-
-        // read all of the input files into the context
-        MgContext context;
-        MgInitialize( &context );
-
-        //
-        if( options.metaDataFilePath )
-        {
-            MgAddMetaDataFile( &context, options.metaDataFilePath );
-        }
-
-        for( int ii = 0; ii < argc; ++ii )
-        {
-            if( !MgAddInputFilePath( &context, argv[ii] ) )
-            {
-                status = 1;
-                continue;
-            }
-        }
-
-        MgWriteAllCodeFiles( &context );
-
-        MgWriteAllDocFiles( &context );
-
-        MgFinalize( &context );
-
-        return status;
-    }
 
