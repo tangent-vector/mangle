@@ -110,11 +110,13 @@ Reading Input Files
     {
         MgReadLines( context, inputFile );
 
-        MgElement* firstElement = MgParseBlockElements(
+        LineRange range;
+        range.begin = inputFile->beginLines;
+        range.end   = inputFile->endLines;
+        MgElement* firstElement = ParseBlockElementsInRange(
             context,
             inputFile,
-            inputFile->beginLines,
-            inputFile->endLines );
+            range );
         inputFile->firstElement = firstElement;
     }
 

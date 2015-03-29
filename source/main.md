@@ -129,6 +129,8 @@ In order to make Mangle easy to deploy, all of its code will be placed in a sing
 
 ### Includes ###
 
+We include a few files from the C standard library, mostly to deal with input/output and some basic string operations.
+
     <<includes>>=
     #include <assert.h>
     #include <ctype.h>
@@ -136,20 +138,23 @@ In order to make Mangle easy to deploy, all of its code will be placed in a sing
     #include <stdlib.h>
     #include <string.h>
 
-### Declarations ###
+### Declarations and Definitions ###
+
+For the most part we are able to emit definitions in an order such that we don't need a lot of forward declarations.
+We only need to ensure that the type declarations for strings, and for the overall document structure are output before the various function definitions.
 
     <<declarations>>=
     <<string declarations>>
     <<document declarations>>
 
-### Definitions ###
+The definitions are then written in an order that respects their dependencies.
 
     <<definitions>>=
     <<reader definitions>>
     <<string definitions>>
     <<parsing definitions>>
     <<span-level parsing definitions>>
-    <<block-level parsing definitions>>
+    <<block-level parsing>>
     <<writer definitions>>
     <<export definitions>>
     <<code export definitions>>

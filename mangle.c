@@ -27,7 +27,7 @@
 #line 123 "source/main.md"
                
     
-#line 133 "source/main.md"
+#line 135 "source/main.md"
     #include <assert.h>
     #include <ctype.h>
     #include <stdio.h>
@@ -37,7 +37,7 @@
 #line 124 "source/main.md"
                 
     
-#line 142 "source/main.md"
+#line 147 "source/main.md"
     
 #line 11 "source/string.md"
     typedef struct MgStringT
@@ -49,7 +49,7 @@
 #line 43 "source/string.md"
     MgString MgMakeString( char const* begin, char const* end );
     
-#line 142 "source/main.md"
+#line 147 "source/main.md"
                            
     
 #line 484 "source/document.md"
@@ -328,13 +328,13 @@
 #line 485 "source/document.md"
                                   
     
-#line 143 "source/main.md"
+#line 148 "source/main.md"
                              
     
 #line 125 "source/main.md"
                     
     
-#line 148 "source/main.md"
+#line 153 "source/main.md"
     
 #line 13 "source/reader.md"
     typedef struct MgReaderT
@@ -396,7 +396,7 @@
         return *(reader->cursor);
     }
     
-#line 148 "source/main.md"
+#line 153 "source/main.md"
                           
     
 #line 23 "source/string.md"
@@ -502,7 +502,7 @@
         }
     }
     
-#line 149 "source/main.md"
+#line 154 "source/main.md"
                           
     
 #line 5 "source/parse.md"
@@ -873,7 +873,7 @@
         return sourceLoc;
     }
     
-#line 150 "source/main.md"
+#line 155 "source/main.md"
                            
     
 #line 5 "source/parse-span.md"
@@ -1453,16 +1453,91 @@
         return writer.firstElement;
     }
     
-#line 151 "source/main.md"
+#line 156 "source/main.md"
                                       
     
-#line 5 "source/parse-block.md"
+#line 2105 "source/parse-block.md"
+    
+#line 34 "source/parse-block.md"
     typedef struct LineRangeT
     {
         MgLine* begin;
         MgLine* end;
     } LineRange;
     
+#line 101 "source/parse-block.md"
+    #define BLOCK_PARSE_FUNC(Name) \
+        MgElement* Name( MgContext* context, MgInputFile* inputFile, LineRange* ioLineRange )
+    typedef BLOCK_PARSE_FUNC((*BlockParseFunc));
+    
+#line 2105 "source/parse-block.md"
+                                 
+    
+#line 21 "source/parse-block.md"
+    MgElement* ParseBlockElement(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        LineRange*      ioLineRange );
+    
+    MgElement* ParseBlockElementsInRange(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        LineRange       lineRange );
+    
+#line 342 "source/parse-block.md"
+    MgElement* ParseSetextHeader(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        LineRange*      ioLineRange,
+        char            c,
+        MgElementKind   kind );
+    
+#line 869 "source/parse-block.md"
+    MgElement* ParseCodeBlockBody(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        LineRange       inLineRange,
+        char const*     langBegin,
+        char const*     langEnd );
+    
+#line 2097 "source/parse-block.md"
+    char const* CheckIndentedCodeLine(
+        MgLine* line );
+    
+#line 2106 "source/parse-block.md"
+                                        
+    
+#line 272 "source/parse-block.md"
+    MgBool IsBlankLine( MgLine* line )
+    {
+        char const* cursor = line->text.begin;
+        char const* end = line->text.end;
+        while( cursor != end )
+        {
+            if( !isspace(*cursor) )
+                return MG_FALSE;
+            ++cursor;
+        }
+        return MG_TRUE;
+    }
+    
+#line 1913 "source/parse-block.md"
+    void SkipEmptyLines(
+        LineRange*  ioLineRange )
+    {
+        for(;;)
+        {
+            MgLine* begin = ioLineRange->begin;
+            if( begin == ioLineRange->end )
+                return;
+            if( !IsBlankLine(begin) )
+                return;
+                
+            ioLineRange->begin = begin + 1;
+        }
+    }
+    
+#line 1931 "source/parse-block.md"
     MgElement* ReadSpansInRange(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1475,25 +1550,6 @@
             lines.begin,
             lines.end,
             flags );
-    }
-    
-    MgElement* ReadElementsInRange(
-        MgContext*      context,
-        MgInputFile*    inputFile,
-        LineRange       lineRange );
-    
-    MgBool IsEmptyLine(
-        MgLine* line )
-    {
-        char const* cursor = line->text.begin;
-        char const* end = line->text.end;
-        while( cursor != end )
-        {
-            if( !isspace(*cursor) )
-                return MG_FALSE;
-            ++cursor;
-        }
-        return MG_TRUE;
     }
     
     MgBool LineIsAll(
@@ -1514,8 +1570,6 @@
         }
         return MG_TRUE;
     }
-    
-    typedef MgElement* (*ParseFunc)( MgContext*, MgInputFile*, LineRange* );
     
     MgLine* GetLine(
         LineRange*  ioLineRange )
@@ -1559,62 +1613,8 @@
     //
     
     
-    MgElement* ParseSetextHeader(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange,
-        char            c,
-        MgElementKind   kind )
-    {
-        LineRange innerRange;
-        MgLine* firstLine = GetLine(ioLineRange);
-        MgLine* secondLine = GetLine(ioLineRange);
-        if( !secondLine ) return 0;
     
-        // ignore kind of first line, assuming other
-        // parsers have gotten a fair chance already
-        if(!LineIsAll(secondLine, c))
-            return 0;
     
-        // the inner range does not include the second line,
-        // so we can't just use the Snip() function for everything
-        innerRange = MgInclusiveLineRange(firstLine, firstLine);
-        Snip( firstLine, secondLine, ioLineRange );
-    
-        MgElement* firstChild = ReadSpansInRange(
-            context,
-            inputFile,
-            innerRange,
-            kMgSpanFlags_Default );
-    
-        return MgCreateParentElement(
-            kind,
-            firstChild );
-    }
-    
-    MgElement* ParseSetextHeader1(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        return ParseSetextHeader(
-            context, inputFile,
-            ioLineRange,
-            '=',
-            kMgElementKind_Header1 );
-    }
-    
-    MgElement* ParseSetextHeader2(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        return ParseSetextHeader(
-            context, inputFile,
-            ioLineRange,
-            '-',
-            kMgElementKind_Header2 );
-    }
     
     void TrimLeadingSpace(
         char const** ioBegin,
@@ -1652,117 +1652,6 @@
         MgLine*         line )
     {
         MgInitializeStringReader( reader, line->text );
-    }
-    
-    MgElement* ParseAtxHeader(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        LineRange innerRange;
-        MgLine* firstLine = GetLine( ioLineRange );
-    
-        MgReader reader;
-        InitializeLineReader(&reader, firstLine);
-    
-        int level = 0;
-        for(;;)
-        {
-            int c = MgGetChar(&reader);
-            if( c != '#' )
-            {
-                MgUnGetChar(&reader, c);
-                break;
-            }
-            ++level;
-        }
-    
-        if( level == 0 ) return 0;
-    
-        firstLine->text.begin = reader.cursor;
-    
-        TrimLeadingSpace( &firstLine->text.begin, firstLine->text.end );
-        TrimTrailingChar( firstLine->text.begin, &firstLine->text.end, '#' );
-        TrimTrailingSpace( firstLine->text.begin, &firstLine->text.end );
-    
-        if( level > kMaxHeaderLevel )
-            level = kMaxHeaderLevel;
-    
-        innerRange = Snip( firstLine, firstLine, ioLineRange );
-    
-        MgElement* firstChild = ReadSpansInRange( context, inputFile, innerRange, kMgSpanFlags_Default );
-    
-        return MgCreateParentElement(
-            (MgElementKind) (kMgElementKind_Header1 + (level-1)),
-            firstChild );
-    }
-    
-    char const* CheckQuoteLine(
-        MgLine* line )
-    {
-        MgReader reader;
-        InitializeLineReader(&reader, line );
-    
-        int c = MgGetChar( &reader );
-        if( c != '>' )
-            return 0;
-    
-        int d = MgGetChar( &reader );
-        if( d != ' ' )
-        {
-            MgUnGetChar( &reader, d );
-        }
-        return reader.cursor;
-    }
-    
-    MgElement* ParseBlockQuote(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        MgLine* firstLine = GetLine( ioLineRange );
-        MgLine* lastLine = firstLine;
-    
-        MgLine* line = firstLine;
-        for(;;)
-        {
-            if( !line )
-                break;
-    
-            char const* lineStart = CheckQuoteLine(line);
-            if( !lineStart )
-            {
-                if( line == firstLine )
-                    return 0; // this isn't a block quote at all!
-                else
-                    break; // we've found the first line that doesn't belong
-            } 
-    
-            // we are starting a paragraph within the block quote
-    
-            // continue consuming lines until we see an empty line
-            while( line && !IsEmptyLine(line) )
-            {
-                lineStart = CheckQuoteLine(line);
-                if( lineStart )
-                    line->text.begin = lineStart;
-                lastLine = line;
-                line = GetLine( ioLineRange );
-            }
-    
-            // continue consuming lines until we see a non-empty line
-            while( line && IsEmptyLine(line) )
-            {
-                line = GetLine( ioLineRange );
-            }
-        }
-    
-        LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
-        MgElement* firstChild = ReadElementsInRange(context, inputFile, innerRange);
-        return MgCreateParentElement(
-            kMgElementKind_BlockQuote,
-            firstChild );
     }
     
     int GetIndent(
@@ -1812,6 +1701,805 @@
         }
     }
     
+#line 2107 "source/parse-block.md"
+                                     
+    
+#line 46 "source/parse-block.md"
+    MgElement* ParseBlockElementsInRange(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        LineRange       lineRange )
+    {
+        MgElement*  elements    = NULL;
+        MgElement** elementLink = &elements;
+    
+        for(;;)
+        {
+            
+#line 67 "source/parse-block.md"
+    SkipEmptyLines(&lineRange);
+    
+#line 75 "source/parse-block.md"
+    if( lineRange.begin == lineRange.end )
+        break;
+    
+#line 68 "source/parse-block.md"
+                               
+    
+#line 81 "source/parse-block.md"
+    MgElement* element = ParseBlockElement( context, inputFile, &lineRange );
+    
+#line 69 "source/parse-block.md"
+                                    
+    
+#line 86 "source/parse-block.md"
+    *elementLink = element;
+    while( *elementLink )
+        elementLink = &(*elementLink)->next;
+    
+#line 70 "source/parse-block.md"
+                                              
+    
+#line 56 "source/parse-block.md"
+                                                                 
+        }
+    
+        return elements;
+    }
+    
+#line 210 "source/parse-block.md"
+    MgElement* ParseBlockLevelHtml(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange )
+    {
+        MgLine* firstLine = GetLine( ioLineRange );
+        MgLine* lastLine = firstLine;
+    
+        MgReader reader;
+        InitializeLineReader( &reader, firstLine );
+    
+        int c = MgGetChar( &reader );
+        if( c != '<' ) return NULL;
+    
+        int d = MgGetChar( &reader );
+        if( !isalpha(d) ) return NULL;
+    
+        for(;;)
+        {
+            MgLine* line = GetLine( ioLineRange );
+            if( !line )
+                break;
+    
+            lastLine = line;
+    
+            InitializeLineReader( &reader, line );
+            int e = MgGetChar( &reader );
+            if( e != '<' )
+                continue;
+            int f = MgGetChar( &reader );
+            if( f != '/' )
+                continue;
+            int g = MgGetChar( &reader );
+            if( !isalpha(g) )
+                continue;
+    
+            break;
+        }
+    
+        LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
+    
+        MgElement* firstChild = ReadSpansInRange( context, inputFile, innerRange, kMgSpanFlags_HtmlBlock );
+        return MgCreateParentElement(
+            kMgElementKind_HtmlBlock,
+            firstChild );
+    }
+    
+#line 288 "source/parse-block.md"
+    BLOCK_PARSE_FUNC(ParseDefaultParagraph)
+    {
+        MgLine* firstLine = GetLine( ioLineRange );
+        MgLine* lastLine = firstLine;
+    
+        for(;;)
+        {
+            MgLine* line = GetLine( ioLineRange );
+            if( !line || IsBlankLine(line) )
+            {
+                UnGetLine(ioLineRange, line);
+                break;
+            }
+    
+            lastLine = line;
+        }
+    
+        LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
+    
+        MgElement* firstChild = ReadSpansInRange( context, inputFile, innerRange, kMgSpanFlags_Default );
+        return MgCreateParentElement(
+            kMgElementKind_Paragraph,
+            firstChild );
+    }
+    
+#line 353 "source/parse-block.md"
+    BLOCK_PARSE_FUNC(ParseSetextHeader1)
+    {
+        return ParseSetextHeader(
+            context, inputFile,
+            ioLineRange,
+            '=',
+            kMgElementKind_Header1 );
+    }
+    
+    BLOCK_PARSE_FUNC(ParseSetextHeader2)
+    {
+        return ParseSetextHeader(
+            context, inputFile,
+            ioLineRange,
+            '-',
+            kMgElementKind_Header2 );
+    }
+    
+#line 377 "source/parse-block.md"
+    MgElement* ParseSetextHeader(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange,
+        char            c,
+        MgElementKind   kind )
+    {
+        
+#line 408 "source/parse-block.md"
+    MgLine* firstLine = GetLine(ioLineRange);
+    MgLine* secondLine = GetLine(ioLineRange);
+    if( !secondLine ) return 0;
+    
+#line 384 "source/parse-block.md"
+                                 
+    
+        
+#line 419 "source/parse-block.md"
+    if(!LineIsAll(secondLine, c))
+        return 0;
+    
+#line 386 "source/parse-block.md"
+                                                      
+    
+        // the inner range does not include the second line,
+        // so we can't just use the Snip() function for everything
+        LineRange innerRange = MgInclusiveLineRange(firstLine, firstLine);
+        Snip( firstLine, secondLine, ioLineRange );
+    
+        MgElement* firstChild = ReadSpansInRange(
+            context,
+            inputFile,
+            innerRange,
+            kMgSpanFlags_Default );
+    
+        return MgCreateParentElement(
+            kind,
+            firstChild );
+    }
+    
+#line 449 "source/parse-block.md"
+    MgElement* ParseAtxHeader(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange )
+    {
+        LineRange innerRange;
+        MgLine* firstLine = GetLine( ioLineRange );
+    
+        MgReader reader;
+        InitializeLineReader(&reader, firstLine);
+    
+        int level = 0;
+        for(;;)
+        {
+            int c = MgGetChar(&reader);
+            if( c != '#' )
+            {
+                MgUnGetChar(&reader, c);
+                break;
+            }
+            ++level;
+        }
+    
+        if( level == 0 ) return 0;
+    
+        firstLine->text.begin = reader.cursor;
+    
+        TrimLeadingSpace( &firstLine->text.begin, firstLine->text.end );
+        TrimTrailingChar( firstLine->text.begin, &firstLine->text.end, '#' );
+        TrimTrailingSpace( firstLine->text.begin, &firstLine->text.end );
+    
+        if( level > kMaxHeaderLevel )
+            level = kMaxHeaderLevel;
+    
+        innerRange = Snip( firstLine, firstLine, ioLineRange );
+    
+        MgElement* firstChild = ReadSpansInRange( context, inputFile, innerRange, kMgSpanFlags_Default );
+    
+        return MgCreateParentElement(
+            (MgElementKind) (kMgElementKind_Header1 + (level-1)),
+            firstChild );
+    }
+    
+#line 542 "source/parse-block.md"
+    char const* CheckQuoteLine(
+        MgLine* line )
+    {
+        MgReader reader;
+        InitializeLineReader(&reader, line );
+    
+        int c = MgGetChar( &reader );
+        if( c != '>' )
+            return 0;
+    
+        int d = MgGetChar( &reader );
+        if( d != ' ' )
+        {
+            MgUnGetChar( &reader, d );
+        }
+        return reader.cursor;
+    }
+    
+    MgElement* ParseBlockQuote(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange )
+    {
+        MgLine* firstLine = GetLine( ioLineRange );
+        MgLine* lastLine = firstLine;
+    
+        MgLine* line = firstLine;
+        for(;;)
+        {
+            if( !line )
+                break;
+    
+            char const* lineStart = CheckQuoteLine(line);
+            if( !lineStart )
+            {
+                if( line == firstLine )
+                    return 0; // this isn't a block quote at all!
+                else
+                    break; // we've found the first line that doesn't belong
+            } 
+    
+            // we are starting a paragraph within the block quote
+    
+            // continue consuming lines until we see an empty line
+            while( line && !IsBlankLine(line) )
+            {
+                lineStart = CheckQuoteLine(line);
+                if( lineStart )
+                    line->text.begin = lineStart;
+                lastLine = line;
+                line = GetLine( ioLineRange );
+            }
+    
+            // continue consuming lines until we see a non-empty line
+            while( line && IsBlankLine(line) )
+            {
+                line = GetLine( ioLineRange );
+            }
+        }
+    
+        LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
+    
+        MgElement* firstChild = ParseBlockElementsInRange(context, inputFile, innerRange);
+        return MgCreateParentElement(
+            kMgElementKind_BlockQuote,
+            firstChild );
+    }
+    
+#line 618 "source/parse-block.md"
+    char const* CheckUnorderedListLine(
+        MgLine* line )
+    {
+        MgReader reader;
+        InitializeLineReader( &reader, line );
+    
+        // may have up to three leading spaces
+        for(int ii = 0; ii < 3; ++ii )
+        {
+            int cc = MgGetChar( &reader );
+            if( cc != ' ' )
+            {
+                MgUnGetChar( &reader, cc );
+                break;
+            }
+        }
+    
+        int c = MgGetChar( &reader );
+        switch( c )
+        {
+        case '*':
+        case '+':
+        case '-':
+            break;
+    
+        default:
+            return 0;
+        }
+    
+        // skip white-space after the bullet
+        for(;;)
+        {
+            int d = MgGetChar( &reader );
+            if( !isspace(d) )
+            {
+                MgUnGetChar( &reader, d );
+                break;
+            }
+        }
+    
+        return reader.cursor;
+    }
+    
+    char const* CheckOrderedListLine(
+        MgLine* line )
+    {
+        MgReader reader;
+        InitializeLineReader( &reader, line );
+    
+        // may have up to three leading spaces
+        for(int ii = 0; ii < 3; ++ii )
+        {
+            int cc = MgGetChar( &reader );
+            if( cc != ' ' )
+            {
+                MgUnGetChar( &reader, cc );
+                break;
+            }
+        }
+    
+        int c = MgGetChar( &reader );
+        if( !isdigit(c) )
+            return 0;
+    
+        // skip remaining digits
+        for(;;)
+        {
+            int d = MgGetChar( &reader );
+            if( !isdigit(d) )
+            {
+                MgUnGetChar( &reader, d );
+                break;
+            }
+        }
+    
+        // expect a dot
+        int e = MgGetChar( &reader );
+        if( e != '.' )
+            return 0;
+    
+        // skip white-space after the dot
+        for(;;)
+        {
+            int d = MgGetChar( &reader );
+            if( !isspace(d) )
+            {
+                MgUnGetChar( &reader, d );
+                break;
+            }
+        }
+    
+        return reader.cursor;
+    }
+    
+    char const* CheckListLineLeadingSpace(
+        MgLine* line )
+    {
+        MgReader reader;
+        InitializeLineReader( &reader, line );
+    
+        for( int ii = 0; ii < 4; ++ii )
+        {
+            int c = MgGetChar( &reader );
+            if( c == '\t' )
+                break;
+            if( c != ' ' )
+            {
+                MgUnGetChar( &reader, c );
+                return 0;
+            }
+        }
+        return reader.cursor;
+    }
+    
+    MgElement* ParseListItem(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange,
+        char const* (*checkLineFunc)(MgLine*) )
+    {
+        MgLine* firstLine = GetLine( ioLineRange );
+        MgLine* lastLine = firstLine;
+    
+        if( !firstLine )
+            return 0;
+    
+        // check the first line
+        char const* lineStart = checkLineFunc(firstLine);
+        if( !lineStart )
+            return 0;
+        firstLine->text.begin = lineStart;
+    
+        // read subsequent lines of the item, until
+        MgLine* line = firstLine;
+    
+        for(;;)
+        {
+            line = GetLine( ioLineRange );
+            while( line )
+            {
+                // we see an empty line, or
+                if( IsBlankLine(line) )
+                    break;
+    
+                // a line that starts a new item
+                // \todo: does this need to consider other list flavors?
+                lineStart = checkLineFunc(line);
+                if(lineStart)
+                    break;
+    
+                lineStart = CheckListLineLeadingSpace(line);
+                if( lineStart )
+                    line->text.begin = lineStart;
+    
+                // \todo: need to trim front of line...
+    
+                lastLine = line;
+                line = GetLine(ioLineRange);
+            }
+    
+            // continue consuming lines until we see a non-empty line
+            while( line && IsBlankLine(line) )
+            {
+                line = GetLine(ioLineRange);
+            }
+    
+            // if the next line is indented appropriately for line
+            // continuation... we continue building out the same item...
+            if( line )
+            {
+                lineStart = CheckIndentedCodeLine( line );
+                if( lineStart )
+                {
+                    line->text.begin = lineStart;
+                    lastLine = line;
+                    continue;
+                }
+            }
+            break;
+        }
+    
+        LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
+    
+        MgElement* firstChild = ParseBlockElementsInRange( context, inputFile, innerRange );
+    
+        return MgCreateParentElement(
+            kMgElementKind_ListItem,
+            firstChild );
+    }
+    
+    MgElement* ParseList(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange,
+        MgElementKind kind,
+        char const* (*checkLineFunc)(MgLine*) )
+    {
+        MgElement* firstItem = ParseListItem( context, inputFile, ioLineRange, checkLineFunc );
+        MgElement* lastItem = firstItem;
+    
+        if( !firstItem ) return 0;
+    
+        for(;;)
+        {
+            MgElement* item = ParseListItem( context, inputFile, ioLineRange, checkLineFunc );
+            if( !item )
+                break;
+    
+            lastItem->next = item;
+            lastItem = item;
+        }
+    
+        return MgCreateParentElement(
+            kind,
+            firstItem );
+    }
+    
+    MgElement* ParseOrderedList(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange )
+    {
+        return ParseList(
+            context, inputFile, 
+            ioLineRange,
+            kMgElementKind_OrderedList,
+            &CheckOrderedListLine );
+    }
+    
+    MgElement* ParseUnorderedList(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange )
+    {
+        return ParseList(
+            context, inputFile,
+            ioLineRange,
+            kMgElementKind_UnorderedList,
+            &CheckUnorderedListLine );
+    }
+    
+#line 893 "source/parse-block.md"
+    char const* CheckIndentedCodeLine(
+        MgLine* line )
+    {
+        // either a tab or four spaces
+        MgReader reader;
+        InitializeLineReader(&reader, line );
+    
+        int c = MgGetChar( &reader );
+        if( c == '\t' )
+            return reader.cursor;
+        MgUnGetChar( &reader, c );
+    
+        for( int ii = 0; ii < 4; ++ii )
+        {
+            int d = MgGetChar( &reader );
+            if( d != ' ' )
+                return 0;
+        }
+        return reader.cursor;
+    }
+    
+    MgElement* ParseIndentedCode(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange )
+    {
+        MgLine* firstLine = GetLine(ioLineRange);
+        MgLine* lastLine = firstLine;
+    
+        MgLine* line = firstLine;
+        for(;;)
+        {
+            if( !line )
+                break;
+    
+            char const* lineStart = CheckIndentedCodeLine(line);
+            if( !lineStart )
+            {
+                if( line == firstLine )
+                    return 0; // this isn't a code block at all!
+                else
+                    break; // end of the code block
+            }
+    
+            // if the line that starts the paragraph looks like a
+            // literate scrap introduction `<< foo >>=`, then end
+            // this code block so we can start a new one.
+            if( line != firstLine
+                && CheckLiterateScrapIntroductionLine(context, inputFile, lineStart, line) )
+            {
+                break;
+            }
+    
+            // we are starting a paragraph within the code block
+    
+            // continue consuming lines until we see an empty line
+            while( line && !IsBlankLine(line) )
+            {
+                lineStart = CheckIndentedCodeLine(line);
+                if(!lineStart)
+                    break; // end of the code element...
+    
+                line->text.begin = lineStart;
+                lastLine = line;
+                line = GetLine( ioLineRange );
+            }
+    
+            // continue consuming lines until we see a non-empty line
+            while( line && IsBlankLine(line) )
+            {
+                line = GetLine(ioLineRange);
+            }
+        }
+    
+        LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
+    
+        return ParseCodeBlockBody(
+            context,
+            inputFile,
+            innerRange,
+            0, 0 ); // no way to pass in a language name
+    }
+    
+#line 981 "source/parse-block.md"
+    char const* CheckBracketedCodeLine(
+        MgLine* line,
+        char    c )
+    {
+        MgReader reader;
+        InitializeLineReader( &reader, line );
+    
+        for( int ii = 0; ii < 3; ++ii )
+        {
+            int d = MgGetChar( &reader );
+            if( d != c )
+                return 0;
+        }
+        return reader.cursor;
+    }
+    
+    MgElement* ParseBracketedCode(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange,
+        char c )
+    {
+        MgLine* openLine = GetLine( ioLineRange );
+        char const* startLang = CheckBracketedCodeLine( openLine, c );
+        if( !startLang )
+            return 0;
+        openLine->text.begin = startLang;
+    
+        MgLine* firstLine = 0;
+        MgLine* lastLine = 0;
+    
+        for(;;)
+        {
+            MgLine* line = GetLine( ioLineRange );
+            if( !line )
+                break; // \todo: this would make an un-terminated code block...
+            char const* end = CheckBracketedCodeLine( line, c );
+            if( end )
+            {
+                // \todo: what if there is text after the backticks?
+                // for now, we process it as an other text...
+                line->text.begin = end;
+    
+                break;
+            }
+    
+            if( !firstLine )
+                firstLine = line;
+            lastLine = line;
+        }
+    
+        // the span *might* be empty... just in case
+        LineRange innerRange = { 0, 0 };
+        if( lastLine )
+            innerRange = Snip( firstLine, lastLine, ioLineRange );
+    
+        // `openLine` begin/end gives us the language marker, if any
+        return ParseCodeBlockBody(
+            context,
+            inputFile,
+            innerRange,
+            openLine->text.begin,
+            openLine->text.end );
+    }
+    
+    MgElement* ParseBracketedCode_Backtick(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange )
+    {
+        return ParseBracketedCode( context, inputFile, ioLineRange, '`' );
+    }
+    
+    MgElement* ParseBracketedCode_Tilde(
+        MgContext*    context,
+        MgInputFile*  inputFile,
+        LineRange*  ioLineRange )
+    {
+        return ParseBracketedCode( context, inputFile, ioLineRange, '~' );
+    }
+    
+#line 1066 "source/parse-block.md"
+    MgBool CheckLiterateScrapIntroductionLine(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        const char*     lineStart,
+        MgLine*         line )
+    {
+        MgString text = MgMakeString(lineStart, line->text.end);
+        MgScrapKind scrapKind = kScrapKind_Unknown;
+        char const* scrapIdBegin    = 0;
+        char const* scrapIdEnd      = 0;
+        char const* scrapNameBegin  = 0;
+        char const* scrapNameEnd    = 0;
+    
+        return ParseLiterateScrapIntroduction(
+            context, inputFile, text,
+            &scrapKind,
+            &scrapIdBegin,      &scrapIdEnd,
+            &scrapNameBegin,    &scrapNameEnd );
+    }
+    
+    MgElement* ParseCodeBlockBody(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        LineRange       inLineRange,
+        char const*     langBegin,
+        char const*     langEnd )
+    {
+        // check if first line looks like a
+        // literate scrap introduction
+        LineRange lineRange = inLineRange;
+        MgLine* firstLine = GetLine( &lineRange );
+    
+        MgScrapKind scrapKind = kScrapKind_Unknown;
+        char const* scrapIdBegin    = 0;
+        char const* scrapIdEnd      = 0;
+        char const* scrapNameBegin  = 0;
+        char const* scrapNameEnd    = 0;
+        if( ParseLiterateScrapIntroduction(
+            context, inputFile, firstLine->text,
+            &scrapKind,
+            &scrapIdBegin,      &scrapIdEnd,
+            &scrapNameBegin,    &scrapNameEnd ) )
+        {
+            firstLine = firstLine + 1;
+        }
+        else
+        {
+            UnGetLine( &lineRange, firstLine );
+        }
+    
+        MgElement* firstChild = ReadSpansInRange( context, inputFile, lineRange, kMgSpanFlags_CodeBlock );
+        MgElement* codeBlock = MgCreateParentElement(
+            kMgElementKind_CodeBlock,
+            firstChild );
+    
+        if( langBegin != langEnd )
+        {
+            MgAddAttribute( codeBlock, "class", MgMakeString( langBegin, langEnd ) );
+        }
+    
+        MgElement* element = codeBlock;
+        if( scrapIdBegin != 0 )
+        {
+            MgString scrapID = { scrapIdBegin, scrapIdEnd };
+            MgString scrapName = { scrapNameBegin, scrapNameEnd };
+            MgScrapFileGroup* scrapGroup = MgFindOrCreateScrapGroup(
+                context,
+                scrapKind,
+                scrapID,
+                inputFile );
+            if( scrapName.begin != scrapName.end )
+            {
+                // \todo: check that we are the first!!!
+                scrapGroup->nameGroup->name = MgReadSpanElements(context, inputFile, firstLine, scrapName, kMgSpanFlags_Default);
+            }
+    
+            MgScrap* scrap = (MgScrap*) malloc(sizeof(MgScrap));
+            scrap->fileGroup = scrapGroup;
+            scrap->sourceLoc = MgGetSourceLoc( inputFile, firstLine, firstLine->text.begin );
+            scrap->body = codeBlock;
+            scrap->next = 0;
+                
+            MgAddScrapToFileGroup( scrapGroup, scrap );
+    
+            element = MgCreateParentElement(
+                kMgElementKind_ScrapDef,
+                element );
+    
+            MgAttribute* attr = MgAddCustomAttribute( element, "$scrap" );
+            attr->scrap = scrap;
+        }
+    
+    
+        return element;
+    }
+    
+#line 1164 "source/parse-block.md"
     MgBool ParseLiterateScrapIntroduction(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1986,267 +2674,7 @@
         return MG_TRUE;
     }
     
-    
-    MgElement* ParseCodeBlockBody(
-        MgContext*      context,
-        MgInputFile*    inputFile,
-        LineRange       inLineRange,
-        char const*     langBegin,
-        char const*     langEnd )
-    {
-        // check if first line looks like a
-        // literate scrap introduction
-        LineRange lineRange = inLineRange;
-        MgLine* firstLine = GetLine( &lineRange );
-    
-        MgScrapKind scrapKind = kScrapKind_Unknown;
-        char const* scrapIdBegin    = 0;
-        char const* scrapIdEnd      = 0;
-        char const* scrapNameBegin  = 0;
-        char const* scrapNameEnd    = 0;
-        if( ParseLiterateScrapIntroduction(
-            context, inputFile, firstLine->text,
-            &scrapKind,
-            &scrapIdBegin,      &scrapIdEnd,
-            &scrapNameBegin,    &scrapNameEnd ) )
-        {
-            firstLine = firstLine + 1;
-        }
-        else
-        {
-            UnGetLine( &lineRange, firstLine );
-        }
-    
-        MgElement* firstChild = ReadSpansInRange( context, inputFile, lineRange, kMgSpanFlags_CodeBlock );
-        MgElement* codeBlock = MgCreateParentElement(
-            kMgElementKind_CodeBlock,
-            firstChild );
-    
-        if( langBegin != langEnd )
-        {
-            MgAddAttribute( codeBlock, "class", MgMakeString( langBegin, langEnd ) );
-        }
-    
-        MgElement* element = codeBlock;
-        if( scrapIdBegin != 0 )
-        {
-            MgString scrapID = { scrapIdBegin, scrapIdEnd };
-            MgString scrapName = { scrapNameBegin, scrapNameEnd };
-            MgScrapFileGroup* scrapGroup = MgFindOrCreateScrapGroup(
-                context,
-                scrapKind,
-                scrapID,
-                inputFile );
-            if( scrapName.begin != scrapName.end )
-            {
-                // \todo: check that we are the first!!!
-                scrapGroup->nameGroup->name = MgReadSpanElements(context, inputFile, firstLine, scrapName, kMgSpanFlags_Default);
-            }
-    
-            MgScrap* scrap = (MgScrap*) malloc(sizeof(MgScrap));
-            scrap->fileGroup = scrapGroup;
-            scrap->sourceLoc = MgGetSourceLoc( inputFile, firstLine, firstLine->text.begin );
-            scrap->body = codeBlock;
-            scrap->next = 0;
-                
-            MgAddScrapToFileGroup( scrapGroup, scrap );
-    
-            element = MgCreateParentElement(
-                kMgElementKind_ScrapDef,
-                element );
-    
-            MgAttribute* attr = MgAddCustomAttribute( element, "$scrap" );
-            attr->scrap = scrap;
-        }
-    
-    
-        return element;
-    }
-    
-    char const* CheckIndentedCodeLine(
-        MgLine* line )
-    {
-        // either a tab or four spaces
-        MgReader reader;
-        InitializeLineReader(&reader, line );
-    
-        int c = MgGetChar( &reader );
-        if( c == '\t' )
-            return reader.cursor;
-        MgUnGetChar( &reader, c );
-    
-        for( int ii = 0; ii < 4; ++ii )
-        {
-            int d = MgGetChar( &reader );
-            if( d != ' ' )
-                return 0;
-        }
-        return reader.cursor;
-    }
-    
-    MgBool CheckLiterateScrapIntroductionLine(
-        MgContext*      context,
-        MgInputFile*    inputFile,
-        const char*     lineStart,
-        MgLine*         line )
-    {
-        MgString text = MgMakeString(lineStart, line->text.end);
-        MgScrapKind scrapKind = kScrapKind_Unknown;
-        char const* scrapIdBegin    = 0;
-        char const* scrapIdEnd      = 0;
-        char const* scrapNameBegin  = 0;
-        char const* scrapNameEnd    = 0;
-    
-        return ParseLiterateScrapIntroduction(
-            context, inputFile, text,
-            &scrapKind,
-            &scrapIdBegin,      &scrapIdEnd,
-            &scrapNameBegin,    &scrapNameEnd );
-    }
-    
-    MgElement* ParseIndentedCode(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        MgLine* firstLine = GetLine(ioLineRange);
-        MgLine* lastLine = firstLine;
-    
-        MgLine* line = firstLine;
-        for(;;)
-        {
-            if( !line )
-                break;
-    
-            char const* lineStart = CheckIndentedCodeLine(line);
-            if( !lineStart )
-            {
-                if( line == firstLine )
-                    return 0; // this isn't a code block at all!
-                else
-                    break; // end of the code block
-            }
-    
-            // if the line that starts the paragraph looks like a
-            // literate scrap introduction `<< foo >>=`, then end
-            // this code block so we can start a new one.
-            if( line != firstLine
-                && CheckLiterateScrapIntroductionLine(context, inputFile, lineStart, line) )
-            {
-                break;
-            }
-    
-            // we are starting a paragraph within the code block
-    
-            // continue consuming lines until we see an empty line
-            while( line && !IsEmptyLine(line) )
-            {
-                lineStart = CheckIndentedCodeLine(line);
-                if(!lineStart)
-                    break; // end of the code element...
-    
-                line->text.begin = lineStart;
-                lastLine = line;
-                line = GetLine( ioLineRange );
-            }
-    
-            // continue consuming lines until we see a non-empty line
-            while( line && IsEmptyLine(line) )
-            {
-                line = GetLine(ioLineRange);
-            }
-        }
-    
-        LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
-        return ParseCodeBlockBody(
-            context,
-            inputFile,
-            innerRange,
-            0, 0 ); // no way to pass in a language name
-    }
-    
-    char const* CheckBracketedCodeLine(
-        MgLine* line,
-        char    c )
-    {
-        MgReader reader;
-        InitializeLineReader( &reader, line );
-    
-        for( int ii = 0; ii < 3; ++ii )
-        {
-            int d = MgGetChar( &reader );
-            if( d != c )
-                return 0;
-        }
-        return reader.cursor;
-    }
-    
-    MgElement* ParseBracketedCode(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange,
-        char c )
-    {
-        MgLine* openLine = GetLine( ioLineRange );
-        char const* startLang = CheckBracketedCodeLine( openLine, c );
-        if( !startLang )
-            return 0;
-        openLine->text.begin = startLang;
-    
-        MgLine* firstLine = 0;
-        MgLine* lastLine = 0;
-    
-        for(;;)
-        {
-            MgLine* line = GetLine( ioLineRange );
-            if( !line )
-                break; // \todo: this would make an un-terminated code block...
-            char const* end = CheckBracketedCodeLine( line, c );
-            if( end )
-            {
-                // \todo: what if there is text after the backticks?
-                // for now, we process it as an other text...
-                line->text.begin = end;
-    
-                break;
-            }
-    
-            if( !firstLine )
-                firstLine = line;
-            lastLine = line;
-        }
-    
-        // the span *might* be empty... just in case
-        LineRange innerRange = { 0, 0 };
-        if( lastLine )
-            innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
-        // `openLine` begin/end gives us the language marker, if any
-        return ParseCodeBlockBody(
-            context,
-            inputFile,
-            innerRange,
-            openLine->text.begin,
-            openLine->text.end );
-    }
-    
-    MgElement* ParseBracketedCode_Backtick(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        return ParseBracketedCode( context, inputFile, ioLineRange, '`' );
-    }
-    
-    MgElement* ParseBracketedCode_Tilde(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        return ParseBracketedCode( context, inputFile, ioLineRange, '~' );
-    }
-    
+#line 1360 "source/parse-block.md"
     MgElement* ParseHorizontalRule(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -2312,340 +2740,7 @@
         return ParseHorizontalRule( context, inputFile, ioLineRange, '_' );
     }
     
-    char const* CheckUnorderedListLine(
-        MgLine* line )
-    {
-        MgReader reader;
-        InitializeLineReader( &reader, line );
-    
-        // may have up to three leading spaces
-        for(int ii = 0; ii < 3; ++ii )
-        {
-            int cc = MgGetChar( &reader );
-            if( cc != ' ' )
-            {
-                MgUnGetChar( &reader, cc );
-                break;
-            }
-        }
-    
-        int c = MgGetChar( &reader );
-        switch( c )
-        {
-        case '*':
-        case '+':
-        case '-':
-            break;
-    
-        default:
-            return 0;
-        }
-    
-        // skip white-space after the bullet
-        for(;;)
-        {
-            int d = MgGetChar( &reader );
-            if( !isspace(d) )
-            {
-                MgUnGetChar( &reader, d );
-                break;
-            }
-        }
-    
-        return reader.cursor;
-    }
-    
-    char const* CheckOrderedListLine(
-        MgLine* line )
-    {
-        MgReader reader;
-        InitializeLineReader( &reader, line );
-    
-        // may have up to three leading spaces
-        for(int ii = 0; ii < 3; ++ii )
-        {
-            int cc = MgGetChar( &reader );
-            if( cc != ' ' )
-            {
-                MgUnGetChar( &reader, cc );
-                break;
-            }
-        }
-    
-        int c = MgGetChar( &reader );
-        if( !isdigit(c) )
-            return 0;
-    
-        // skip remaining digits
-        for(;;)
-        {
-            int d = MgGetChar( &reader );
-            if( !isdigit(d) )
-            {
-                MgUnGetChar( &reader, d );
-                break;
-            }
-        }
-    
-        // expect a dot
-        int e = MgGetChar( &reader );
-        if( e != '.' )
-            return 0;
-    
-        // skip white-space after the dot
-        for(;;)
-        {
-            int d = MgGetChar( &reader );
-            if( !isspace(d) )
-            {
-                MgUnGetChar( &reader, d );
-                break;
-            }
-        }
-    
-        return reader.cursor;
-    }
-    
-    char const* CheckListLineLeadingSpace(
-        MgLine* line )
-    {
-        MgReader reader;
-        InitializeLineReader( &reader, line );
-    
-        for( int ii = 0; ii < 4; ++ii )
-        {
-            int c = MgGetChar( &reader );
-            if( c == '\t' )
-                break;
-            if( c != ' ' )
-            {
-                MgUnGetChar( &reader, c );
-                return 0;
-            }
-        }
-        return reader.cursor;
-    }
-    
-    MgElement* ParseListItem(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange,
-        char const* (*checkLineFunc)(MgLine*) )
-    {
-        MgLine* firstLine = GetLine( ioLineRange );
-        MgLine* lastLine = firstLine;
-    
-        if( !firstLine )
-            return 0;
-    
-        // check the first line
-        char const* lineStart = checkLineFunc(firstLine);
-        if( !lineStart )
-            return 0;
-        firstLine->text.begin = lineStart;
-    
-        // read subsequent lines of the item, until
-        MgLine* line = firstLine;
-    
-        for(;;)
-        {
-            line = GetLine( ioLineRange );
-            while( line )
-            {
-                // we see an empty line, or
-                if( IsEmptyLine(line) )
-                    break;
-    
-                // a line that starts a new item
-                // \todo: does this need to consider other list flavors?
-                lineStart = checkLineFunc(line);
-                if(lineStart)
-                    break;
-    
-                lineStart = CheckListLineLeadingSpace(line);
-                if( lineStart )
-                    line->text.begin = lineStart;
-    
-                // \todo: need to trim front of line...
-    
-                lastLine = line;
-                line = GetLine(ioLineRange);
-            }
-    
-            // continue consuming lines until we see a non-empty line
-            while( line && IsEmptyLine(line) )
-            {
-                line = GetLine(ioLineRange);
-            }
-    
-            // if the next line is indented appropriately for line
-            // continuation... we continue building out the same item...
-            if( line )
-            {
-                lineStart = CheckIndentedCodeLine( line );
-                if( lineStart )
-                {
-                    line->text.begin = lineStart;
-                    lastLine = line;
-                    continue;
-                }
-            }
-            break;
-        }
-    
-        LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
-        MgElement* firstChild = ReadElementsInRange( context, inputFile, innerRange );
-    
-        return MgCreateParentElement(
-            kMgElementKind_ListItem,
-            firstChild );
-    }
-    
-    MgElement* ParseList(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange,
-        MgElementKind kind,
-        char const* (*checkLineFunc)(MgLine*) )
-    {
-        MgElement* firstItem = ParseListItem( context, inputFile, ioLineRange, checkLineFunc );
-        MgElement* lastItem = firstItem;
-    
-        if( !firstItem ) return 0;
-    
-        for(;;)
-        {
-            MgElement* item = ParseListItem( context, inputFile, ioLineRange, checkLineFunc );
-            if( !item )
-                break;
-    
-            lastItem->next = item;
-            lastItem = item;
-        }
-    
-        return MgCreateParentElement(
-            kind,
-            firstItem );
-    }
-    
-    MgElement* ParseOrderedList(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        return ParseList(
-            context, inputFile, 
-            ioLineRange,
-            kMgElementKind_OrderedList,
-            &CheckOrderedListLine );
-    }
-    
-    MgElement* ParseUnorderedList(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        return ParseList(
-            context, inputFile,
-            ioLineRange,
-            kMgElementKind_UnorderedList,
-            &CheckUnorderedListLine );
-    }
-    
-    void SkipEmptyLines(
-        LineRange*  ioLineRange )
-    {
-        for(;;)
-        {
-            MgLine* begin = ioLineRange->begin;
-            if( begin == ioLineRange->end )
-                return;
-            if( !IsEmptyLine(begin) )
-                return;
-                
-            ioLineRange->begin = begin + 1;
-        }
-    }
-    
-    MgElement* ParseDefaultParagraph(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        // an ordinary text paragraph will consume
-        // everything up to the next blank line...
-    
-        MgLine* firstLine = GetLine( ioLineRange );
-    
-        MgLine* lastLine = firstLine;
-        for(;;)
-        {
-            MgLine* line = GetLine( ioLineRange );
-            if( !line || IsEmptyLine(line) )
-            {
-                UnGetLine(ioLineRange, line);
-                break;
-            }
-    
-            lastLine = line;
-        }
-    
-        LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
-        MgElement* firstChild = ReadSpansInRange( context, inputFile, innerRange, kMgSpanFlags_Default );
-        return MgCreateParentElement(
-            kMgElementKind_Paragraph,
-            firstChild );
-    }
-    
-    MgElement* ParseBlockLevelHtml(
-        MgContext*    context,
-        MgInputFile*  inputFile,
-        LineRange*  ioLineRange )
-    {
-        MgLine* firstLine = GetLine( ioLineRange );
-        MgLine* lastLine = firstLine;
-    
-        MgReader reader;
-        InitializeLineReader( &reader, firstLine );
-    
-        int c = MgGetChar( &reader );
-        if( c != '<' ) return NULL;
-    
-        int d = MgGetChar( &reader );
-        if( !isalpha(d) ) return NULL;
-    
-        for(;;)
-        {
-            MgLine* line = GetLine( ioLineRange );
-            if( !line )
-                break;
-    
-            lastLine = line;
-    
-            InitializeLineReader( &reader, line );
-            int e = MgGetChar( &reader );
-            if( e != '<' )
-                continue;
-            int f = MgGetChar( &reader );
-            if( f != '/' )
-                continue;
-            int g = MgGetChar( &reader );
-            if( !isalpha(g) )
-                continue;
-    
-            break;
-        }
-    
-        LineRange innerRange = Snip( firstLine, lastLine, ioLineRange );
-    
-        MgElement* firstChild = ReadSpansInRange( context, inputFile, innerRange, kMgSpanFlags_HtmlBlock );
-        return MgCreateParentElement(
-            kMgElementKind_HtmlBlock,
-            firstChild );
-    }
-    
+#line 1448 "source/parse-block.md"
     MgBool ParseLinkDefinitionTitle(
         MgReader*   reader,
         char const**    outTitleBegin,
@@ -2792,6 +2887,7 @@
             MgMakeString(NULL, NULL));
     }
     
+#line 1601 "source/parse-block.md"
     int CountTableLinePipes(
         MgLine*   line)
     {
@@ -2992,6 +3088,7 @@
             firstRow );
     }
     
+#line 1806 "source/parse-block.md"
     MgElement* ParseMetaData(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -3049,111 +3146,9 @@
         return element;
     }
     
-    MgElement* ReadElement(
-        MgContext*      context,
-        MgInputFile*    inputFile,
-        LineRange*      ioLineRange )
-    {
-        // earlier code has skipped any empty lines,
-        // so we know this line represents the start
-        // of some kind of block-level structure.
-    
-        static const ParseFunc parseFuncs[] = {
-            &ParseLinkDefinition,
-            &ParseTable,
-            &ParseBlockLevelHtml,
-            &ParseBlockQuote,
-            &ParseIndentedCode,
-            &ParseBracketedCode_Backtick,
-            &ParseBracketedCode_Tilde,
-            &ParseAtxHeader,
-            // check for rules before lists, since they
-            // would match otherwise...
-            &ParseHorizontalRule_Hypen,
-            &ParseHorizontalRule_Asterisk,
-            &ParseHorizontalRule_Underscore,
-            &ParseOrderedList,
-            &ParseUnorderedList,
-            // check for the setext headers late, since
-            // they don't pay attention to the text on
-            // the first line
-            &ParseSetextHeader1,
-            &ParseSetextHeader2,
-            // check for ordinary text paragraphs last,
-            // so that we always have a fallback
-            &ParseDefaultParagraph,
-        };
-    
-        ParseFunc const* funcCursor = &parseFuncs[0];
-        for(;;)
-        {
-            LineRange lineRange = *ioLineRange;
-            MgElement* p = (*funcCursor)( context, inputFile, &lineRange );
-            if( p )
-            {
-                *ioLineRange = lineRange;            
-                return p;
-            }
-            ++funcCursor;
-        }
-    }
     
     /*
-    Parse block-level elements from Markdown source, in the range between
-    `beginLines` and `endLines`, which should be lines in the input file
-    `inputFile` loaded in `context`.
-    
-    Returns the first element parsed, which is the start of a linked list
-    of elements (each of which may have its own child elements).
-    */
-    MgElement* MgParseBlockElements(
-        MgContext*      context,
-        MgInputFile*    inputFile,
-        MgLine*         beginLines,
-        MgLine*         endLines )
-    {
-        // TODO: parse meta-data elements until no more matches
-    
-        MgElement* firstElement = NULL;
-        MgElement* lastElement  = NULL;
-    
-        LineRange lineRange = { beginLines, endLines };
-        firstElement = ReadElement( context, inputFile, &lineRange );
-        lastElement = firstElement;
-        for(;;)
-        {
-            SkipEmptyLines(&lineRange);
-            if( lineRange.begin == lineRange.end )
-                break;
-    
-            MgElement* element = ReadElement( context, inputFile, &lineRange );
-            lastElement->next = element;
-            lastElement = element;
-    
-            // The reading code may have read a sequence of blocks, rather
-            // than a single block. We need to make sure to advance our
-            // "cursor" to the real end of the list.
-            while( lastElement->next )
-                lastElement = lastElement->next;
-        }
-    
-        return firstElement;
-    }
-    
-    MgElement* ReadElementsInRange(
-        MgContext*      context,
-        MgInputFile*    inputFile,
-        LineRange       lineRange)
-    {
-        return MgParseBlockElements(
-            context,
-            inputFile,
-            lineRange.begin,
-            lineRange.end );
-    }
-    
-    /*
-    Like `MgParseBlockElements`, but only handles meta-data elements, and
+    Like `ParseBlockElements`, but only handles meta-data elements, and
     not general Markdown document content.
     */
     MgElement* MgParseMetaDataElements(
@@ -3197,8 +3192,90 @@
         return firstElement;    
     }
     
-#line 152 "source/main.md"
+#line 2108 "source/parse-block.md"
                                        
+    
+#line 111 "source/parse-block.md"
+    BLOCK_PARSE_FUNC(ParseBlockElement)
+    {
+        static const BlockParseFunc kBlockParseFuncs[] = {
+            
+#line 146 "source/parse-block.md"
+    
+#line 155 "source/parse-block.md"
+    &ParseLinkDefinition,
+    &ParseTable,
+    &ParseBlockLevelHtml,
+    &ParseBlockQuote,
+    &ParseIndentedCode,
+    &ParseBracketedCode_Backtick,
+    &ParseBracketedCode_Tilde,
+    &ParseAtxHeader,
+    
+#line 146 "source/parse-block.md"
+                                                    
+    
+#line 168 "source/parse-block.md"
+    &ParseHorizontalRule_Hypen,
+    &ParseHorizontalRule_Asterisk,
+    &ParseHorizontalRule_Underscore,
+    
+#line 147 "source/parse-block.md"
+                                                 
+    
+#line 173 "source/parse-block.md"
+    &ParseOrderedList,
+    &ParseUnorderedList,
+    
+#line 148 "source/parse-block.md"
+                                      
+    
+#line 180 "source/parse-block.md"
+    &ParseSetextHeader1,
+    &ParseSetextHeader2,
+    
+#line 149 "source/parse-block.md"
+                                               
+    
+#line 188 "source/parse-block.md"
+    &ParseDefaultParagraph,
+    
+#line 150 "source/parse-block.md"
+                                                  
+    
+#line 114 "source/parse-block.md"
+                                                     
+        };
+    
+        BlockParseFunc const* funcCursor = &kBlockParseFuncs[0];
+        for(;;)
+        {
+            
+#line 131 "source/parse-block.md"
+    LineRange lineRange = *ioLineRange;
+    MgElement* element = (*funcCursor)( context, inputFile, &lineRange );
+    
+#line 120 "source/parse-block.md"
+                                                                  
+            
+#line 137 "source/parse-block.md"
+    if( element )
+    {
+        *ioLineRange = lineRange;            
+        return element;
+    }
+    
+#line 121 "source/parse-block.md"
+                                                                             
+            ++funcCursor;
+        }
+    }
+    
+#line 2109 "source/parse-block.md"
+                                    
+    
+#line 157 "source/main.md"
+                           
     
 #line 7 "source/writer.md"
     typedef struct MgWriterT MgWriter;
@@ -3279,7 +3356,7 @@
         *counter = 0;
     }
     
-#line 153 "source/main.md"
+#line 158 "source/main.md"
                           
     
 #line 8 "source/export.md"
@@ -3344,7 +3421,7 @@
         fclose(file);
     }
     
-#line 154 "source/main.md"
+#line 159 "source/main.md"
                           
     
 #line 5 "source/export-code.md"
@@ -3562,7 +3639,7 @@
         MgWriteTextToFile(outputText, nameBuffer);
     }
     
-#line 155 "source/main.md"
+#line 160 "source/main.md"
                                
     
 #line 5 "source/export-html.md"
@@ -4104,7 +4181,7 @@
         free(outputFileName);
     }
     
-#line 156 "source/main.md"
+#line 161 "source/main.md"
                                
     
 #line 5 "source/input.md"
@@ -4216,11 +4293,13 @@
     {
         MgReadLines( context, inputFile );
     
-        MgElement* firstElement = MgParseBlockElements(
+        LineRange range;
+        range.begin = inputFile->beginLines;
+        range.end   = inputFile->endLines;
+        MgElement* firstElement = ParseBlockElementsInRange(
             context,
             inputFile,
-            inputFile->beginLines,
-            inputFile->endLines );
+            range );
         inputFile->firstElement = firstElement;
     }
     
@@ -4453,7 +4532,7 @@
         return inputFile;
     }
     
-#line 157 "source/main.md"
+#line 162 "source/main.md"
                          
     
 #line 6 "source/options.md"
@@ -4556,7 +4635,7 @@
         return 1;
     }
     
-#line 158 "source/main.md"
+#line 163 "source/main.md"
                            
     
 #line 126 "source/main.md"
