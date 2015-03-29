@@ -1,5 +1,8 @@
 @echo off
 
+set ROOT=%~dp0
+pushd "%ROOT%"
+
 :: Determine which is newer, between mangle.c and mangle.exe
 set SRCFILE=mangle.c
 set EXEFILE=mangle.exe
@@ -26,8 +29,9 @@ if %errorlevel% NEQ 0 (
 del mangle.obj
 
 :Run
+popd
 :: We either found mangle.exe, or built it, so we can just invoke it.
-mangle.exe %*
+"%ROOT%/mangle.exe" %*
 goto Exit
 
 :Error
