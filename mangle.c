@@ -3477,7 +3477,26 @@
         MgWriteCString(writer, "\n#line ");
         WriteInt(writer, loc.line);
         MgWriteCString(writer, " \"");
-        MgWriteCString(writer, inputFile->path);
+    
+        char const* cc = inputFile->path;
+        for(;;)
+        {
+            int c = *cc++;
+            if( !c ) break;
+    
+            switch(c)
+            {
+            case '\\':
+                MgPutChar(writer, '/');
+                break;
+    
+            // TODO: other characters that might need escaping?
+    
+            default:
+                MgPutChar(writer, c);
+                break;
+            }
+        }
         MgWriteCString(writer, "\"\n");
     
         Indent( writer, loc.col );
