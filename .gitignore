@@ -1,0 +1,14 @@
+# ignore the built executable
+mangle
+mangle.exe
+
+# also ignore any "bootstrap" executable made during development
+bootstrap
+bootstrap.exe
+
+# ignore generated HTML files
+*.html
+
+# ignore text editor files
+*.sublime-project
+*.sublime-workspace
