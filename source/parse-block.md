@@ -1062,6 +1062,24 @@ The Markdown reference says:
 
 ### Literate Scraps ###
 
+    <<block-level parsing declarations>>=
+    MgBool CheckLiterateScrapIntroductionLine(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        const char*     lineStart,
+        MgLine*         line );
+
+    MgBool ParseLiterateScrapIntroduction(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        MgString        text,
+        MgScrapKind*    outScrapKind,
+        char const**    outScrapIdBegin,
+        char const**    outScrapIdEnd,
+        char const**    outScrapNameBegin,
+        char const**    outScrapNameEnd );
+
+
     <<block-level parsing definitions>>=
     MgBool CheckLiterateScrapIntroductionLine(
         MgContext*      context,

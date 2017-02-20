@@ -1456,7 +1456,7 @@
 #line 156 "source/main.md"
                                       
     
-#line 2105 "source/parse-block.md"
+#line 2123 "source/parse-block.md"
     
 #line 34 "source/parse-block.md"
     typedef struct LineRangeT
@@ -1470,7 +1470,7 @@
         MgElement* Name( MgContext* context, MgInputFile* inputFile, LineRange* ioLineRange )
     typedef BLOCK_PARSE_FUNC((*BlockParseFunc));
     
-#line 2105 "source/parse-block.md"
+#line 2123 "source/parse-block.md"
                                  
     
 #line 21 "source/parse-block.md"
@@ -1500,11 +1500,28 @@
         char const*     langBegin,
         char const*     langEnd );
     
-#line 2097 "source/parse-block.md"
+#line 1066 "source/parse-block.md"
+    MgBool CheckLiterateScrapIntroductionLine(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        const char*     lineStart,
+        MgLine*         line );
+    
+    MgBool ParseLiterateScrapIntroduction(
+        MgContext*      context,
+        MgInputFile*    inputFile,
+        MgString        text,
+        MgScrapKind*    outScrapKind,
+        char const**    outScrapIdBegin,
+        char const**    outScrapIdEnd,
+        char const**    outScrapNameBegin,
+        char const**    outScrapNameEnd );
+    
+#line 2115 "source/parse-block.md"
     char const* CheckIndentedCodeLine(
         MgLine* line );
     
-#line 2106 "source/parse-block.md"
+#line 2124 "source/parse-block.md"
                                         
     
 #line 272 "source/parse-block.md"
@@ -1521,7 +1538,7 @@
         return MG_TRUE;
     }
     
-#line 1913 "source/parse-block.md"
+#line 1931 "source/parse-block.md"
     void SkipEmptyLines(
         LineRange*  ioLineRange )
     {
@@ -1537,7 +1554,7 @@
         }
     }
     
-#line 1931 "source/parse-block.md"
+#line 1949 "source/parse-block.md"
     MgElement* ReadSpansInRange(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1701,7 +1718,7 @@
         }
     }
     
-#line 2107 "source/parse-block.md"
+#line 2125 "source/parse-block.md"
                                      
     
 #line 46 "source/parse-block.md"
@@ -2402,7 +2419,7 @@
         return ParseBracketedCode( context, inputFile, ioLineRange, '~' );
     }
     
-#line 1066 "source/parse-block.md"
+#line 1084 "source/parse-block.md"
     MgBool CheckLiterateScrapIntroductionLine(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -2499,7 +2516,7 @@
         return element;
     }
     
-#line 1164 "source/parse-block.md"
+#line 1182 "source/parse-block.md"
     MgBool ParseLiterateScrapIntroduction(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -2674,7 +2691,7 @@
         return MG_TRUE;
     }
     
-#line 1360 "source/parse-block.md"
+#line 1378 "source/parse-block.md"
     MgElement* ParseHorizontalRule(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -2740,7 +2757,7 @@
         return ParseHorizontalRule( context, inputFile, ioLineRange, '_' );
     }
     
-#line 1448 "source/parse-block.md"
+#line 1466 "source/parse-block.md"
     MgBool ParseLinkDefinitionTitle(
         MgReader*   reader,
         char const**    outTitleBegin,
@@ -2887,7 +2904,7 @@
             MgMakeString(NULL, NULL));
     }
     
-#line 1601 "source/parse-block.md"
+#line 1619 "source/parse-block.md"
     int CountTableLinePipes(
         MgLine*   line)
     {
@@ -3088,7 +3105,7 @@
             firstRow );
     }
     
-#line 1806 "source/parse-block.md"
+#line 1824 "source/parse-block.md"
     MgElement* ParseMetaData(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -3192,7 +3209,7 @@
         return firstElement;    
     }
     
-#line 2108 "source/parse-block.md"
+#line 2126 "source/parse-block.md"
                                        
     
 #line 111 "source/parse-block.md"
@@ -3271,7 +3288,7 @@
         }
     }
     
-#line 2109 "source/parse-block.md"
+#line 2127 "source/parse-block.md"
                                     
     
 #line 157 "source/main.md"
