@@ -22,7 +22,7 @@ if "%NEWFILE%"=="%SRCFILE%" (
 :: Since we are on Windows, try to build Mangle using Visual Studio
 :: TODO: Check for multiple VS versions
 call "%VS120COMNTOOLS%VSVARS32.bat"
-cl /nologo /I include mangle.c /link /out:mangle.exe
+cl /nologo /I include mangle.c /link /out:mangle.exe setargv.obj
 if %errorlevel% NEQ 0 (
 	goto Exit
 )
