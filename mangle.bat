@@ -21,7 +21,20 @@ if "%NEWFILE%"=="%SRCFILE%" (
 :Build
 :: Since we are on Windows, try to build Mangle using Visual Studio
 :: TODO: Check for multiple VS versions
-call "%VS120COMNTOOLS%VSVARS32.bat"
+if exist "%VS140COMNTOOLS%VSVARS32.bat" (
+	call "%VS140COMNTOOLS%VSVARS32.bat"
+	goto Compile
+)
+
+if exist "%VS120COMNTOOLS%VSVARS32.bat" (
+	call "%VS120COMNTOOLS%VSVARS32.bat"
+	goto Compile
+)
+
+echo "mangle: failed to find Visual Studio comiler"
+goto Error
+
+:Compile
 cl /nologo /I include mangle.c /link /out:mangle.exe setargv.obj
 if %errorlevel% NEQ 0 (
 	goto Exit
