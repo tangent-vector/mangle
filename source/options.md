@@ -12,7 +12,7 @@ Command-Line Options
         char const* sourceOutputPath;
         char const* metaDataFilePath;
         MgBool generateHTML;
-        MgBool defaultLocalScoping;
+        MgScrapKind defaultScrapKind;
     } Options;
 
     void InitializeOptions(
@@ -22,7 +22,7 @@ Command-Line Options
         options->docOutputPath      = 0;
         options->sourceOutputPath   = 0;
         options->metaDataFilePath   = 0;
-        options->defaultLocalScoping = MG_FALSE;
+        options->defaultScrapKind = kScrapKind_GlobalMacro;
         options->generateHTML = MG_FALSE;
     }
 
@@ -76,7 +76,7 @@ Command-Line Options
                 }
                 else if( strcmp(option+1, "local-scoping") == 0)
                 {
-                    options->defaultLocalScoping = MG_TRUE;
+                    options->defaultScrapKind = kScrapKind_LocalMacro;
                 }
                 else
                 {

@@ -236,6 +236,8 @@ The `Context` type holds the state of the entire Mangle session.
         MgScrapNameGroup*   lastScrapNameGroup;
 
         MgInputFile*        metaDataFile;
+
+        MgScrapKind         defaultScrapKind;
     };
 
 

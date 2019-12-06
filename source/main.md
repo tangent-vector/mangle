@@ -46,6 +46,7 @@ Parsing Command-Line Options
         fprintf(stderr, "no input files\n");
         exit(0);
     }
+    context.defaultScrapKind = options.defaultScrapKind;
 
 Reading Input
 -------------

@@ -182,7 +182,13 @@ Code Export
         MgScrapFileGroup* fileGroup,
         MgWriter*         writer )
     {
-        switch( fileGroup->nameGroup->kind )
+        MgScrapKind kind = fileGroup->nameGroup->kind;
+        if(kind == kScrapKind_Unknown)
+        {
+            kind = context->defaultScrapKind;
+        }
+
+        switch( kind )
         {
         default:
             assert(0);
@@ -193,7 +199,6 @@ Code Export
             ExportScrapNameGroupImpl(context, fileGroup->nameGroup, writer);
             break;
 
-        case kScrapKind_Unknown:
         case kScrapKind_LocalMacro:
             ExportScrapFileGroupImpl(context, fileGroup, writer);
             break;

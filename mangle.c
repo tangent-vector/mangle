@@ -1,5 +1,5 @@
 
-#line 123 "source/main.md"
+#line 124 "source/main.md"
     
 #line 50 "README.md"
     /****************************************************************************
@@ -24,20 +24,20 @@
     THE SOFTWARE.
     ****************************************************************************/
     
-#line 123 "source/main.md"
+#line 124 "source/main.md"
                
     
-#line 135 "source/main.md"
+#line 136 "source/main.md"
     #include <assert.h>
     #include <ctype.h>
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
     
-#line 124 "source/main.md"
+#line 125 "source/main.md"
                 
     
-#line 147 "source/main.md"
+#line 148 "source/main.md"
     
 #line 11 "source/string.md"
     typedef struct MgStringT
@@ -49,12 +49,12 @@
 #line 43 "source/string.md"
     MgString MgMakeString( char const* begin, char const* end );
     
-#line 147 "source/main.md"
+#line 148 "source/main.md"
                            
     
-#line 484 "source/document.md"
+#line 486 "source/document.md"
     
-#line 473 "source/document.md"
+#line 475 "source/document.md"
     typedef struct MgAttributeT         MgAttribute;
     typedef struct MgContextT           MgContext;
     typedef struct MgElementT           MgElement;
@@ -65,7 +65,7 @@
     typedef struct MgScrapFileGroupT    MgScrapFileGroup;
     typedef struct MgScrapNameGroupT    MgScrapNameGroup;
     
-#line 484 "source/document.md"
+#line 486 "source/document.md"
                                      
     
 #line 13 "source/document.md"
@@ -191,15 +191,17 @@
         MgScrapNameGroup*   lastScrapNameGroup;
     
         MgInputFile*        metaDataFile;
+    
+        MgScrapKind         defaultScrapKind;
     };
     
-#line 250 "source/document.md"
+#line 252 "source/document.md"
     typedef enum MgElementKindT
     {
         
-#line 258 "source/document.md"
+#line 260 "source/document.md"
     
-#line 266 "source/document.md"
+#line 268 "source/document.md"
     kMgElementKind_BlockQuote,          /* `<blockquote>` */
     kMgElementKind_HorizontalRule,      /* `<hr>` */
     kMgElementKind_UnorderedList,       /* `<ul>` */
@@ -211,7 +213,7 @@
     kMgElementKind_TableHeader,         /* `<th>` */
     kMgElementKind_TableCell,           /* `<td>` */
     
-#line 287 "source/document.md"
+#line 289 "source/document.md"
     kMgElementKind_Header1,             /* `<h1>` */
     kMgElementKind_Header2,             /* `<h2>` */
     kMgElementKind_Header3,             /* `<h3>` */
@@ -219,54 +221,54 @@
     kMgElementKind_Header5,             /* `<h5>` */
     kMgElementKind_Header6,             /* `<h6>` */
     
-#line 300 "source/document.md"
+#line 302 "source/document.md"
     kMgElementKind_CodeBlock,           /* `<pre><code>` */
     
-#line 307 "source/document.md"
+#line 309 "source/document.md"
     kMgElementKind_ScrapDef,
     
-#line 323 "source/document.md"
+#line 325 "source/document.md"
     kMgElementKind_MetaData,
     
-#line 331 "source/document.md"
+#line 333 "source/document.md"
     kMgElementKind_HtmlBlock,
     
-#line 258 "source/document.md"
+#line 260 "source/document.md"
                                  
     
-#line 278 "source/document.md"
+#line 280 "source/document.md"
     kMgElementKind_Em,                  /* `<em>` */
     kMgElementKind_Strong,              /* `<strong>` */
     kMgElementKind_InlineCode,          /* `<code>` */
     
-#line 316 "source/document.md"
+#line 318 "source/document.md"
     kMgElementKind_ScrapRef,
     
-#line 345 "source/document.md"
+#line 347 "source/document.md"
     kMgElementKind_LessThanEntity,      /* `&lt;` */
     kMgElementKind_GreaterThanEntity,   /* `&gt;` */
     kMgElementKind_AmpersandEntity,     /* `&amp;` */
     
-#line 355 "source/document.md"
+#line 357 "source/document.md"
     kMgElementKind_NewLine,             /* `"\n"` */
     
-#line 362 "source/document.md"
+#line 364 "source/document.md"
     kMgElementKind_Link,                /* `<a>` with href attribute */
     
-#line 388 "source/document.md"
+#line 390 "source/document.md"
     kMgElementKind_ReferenceLink,
     
-#line 259 "source/document.md"
+#line 261 "source/document.md"
                                 
     
-#line 338 "source/document.md"
+#line 340 "source/document.md"
     kMgElementKind_Text,
     
-#line 252 "source/document.md"
+#line 254 "source/document.md"
                          
     } MgElementKind;
     
-#line 375 "source/document.md"
+#line 377 "source/document.md"
     struct MgReferenceLinkT
     {
         MgString          id;
@@ -275,66 +277,66 @@
         MgReferenceLink*  next;
     };
     
-#line 396 "source/document.md"
+#line 398 "source/document.md"
     struct MgAttributeT
     {
         
-#line 410 "source/document.md"
+#line 412 "source/document.md"
     MgString              id;
     
-#line 415 "source/document.md"
+#line 417 "source/document.md"
     MgAttribute*          next;
     
-#line 398 "source/document.md"
+#line 400 "source/document.md"
                              
         union
         {
             
-#line 420 "source/document.md"
+#line 422 "source/document.md"
     MgString          val;
     
-#line 425 "source/document.md"
+#line 427 "source/document.md"
     MgReferenceLink*  referenceLink;
     MgScrap*          scrap;
     MgScrapFileGroup* scrapFileGroup;
     MgSourceLoc       sourceLoc;
     
-#line 401 "source/document.md"
+#line 403 "source/document.md"
                                        
         };
     };
     
-#line 435 "source/document.md"
+#line 437 "source/document.md"
     struct MgElementT
     {
         
-#line 443 "source/document.md"
+#line 445 "source/document.md"
     MgElementKind   kind;
     
-#line 449 "source/document.md"
+#line 451 "source/document.md"
     MgString        text;
     
-#line 454 "source/document.md"
+#line 456 "source/document.md"
     MgAttribute*    firstAttr;
     
-#line 459 "source/document.md"
+#line 461 "source/document.md"
     MgElement*      firstChild;
     MgElement*      next;
     
-#line 437 "source/document.md"
+#line 439 "source/document.md"
                            
     };
     
-#line 485 "source/document.md"
+#line 487 "source/document.md"
                                   
     
-#line 148 "source/main.md"
+#line 149 "source/main.md"
                              
     
-#line 125 "source/main.md"
+#line 126 "source/main.md"
                     
     
-#line 153 "source/main.md"
+#line 154 "source/main.md"
     
 #line 13 "source/reader.md"
     typedef struct MgReaderT
@@ -396,7 +398,7 @@
         return *(reader->cursor);
     }
     
-#line 153 "source/main.md"
+#line 154 "source/main.md"
                           
     
 #line 23 "source/string.md"
@@ -502,7 +504,7 @@
         }
     }
     
-#line 154 "source/main.md"
+#line 155 "source/main.md"
                           
     
 #line 5 "source/parse.md"
@@ -873,7 +875,7 @@
         return sourceLoc;
     }
     
-#line 155 "source/main.md"
+#line 156 "source/main.md"
                            
     
 #line 5 "source/parse-span.md"
@@ -1453,7 +1455,7 @@
         return writer.firstElement;
     }
     
-#line 156 "source/main.md"
+#line 157 "source/main.md"
                                       
     
 #line 2105 "source/parse-block.md"
@@ -3274,7 +3276,7 @@
 #line 2109 "source/parse-block.md"
                                     
     
-#line 157 "source/main.md"
+#line 158 "source/main.md"
                            
     
 #line 7 "source/writer.md"
@@ -3356,7 +3358,7 @@
         *counter = 0;
     }
     
-#line 158 "source/main.md"
+#line 159 "source/main.md"
                           
     
 #line 8 "source/export.md"
@@ -3421,7 +3423,7 @@
         fclose(file);
     }
     
-#line 159 "source/main.md"
+#line 160 "source/main.md"
                           
     
 #line 5 "source/export-code.md"
@@ -3605,7 +3607,13 @@
         MgScrapFileGroup* fileGroup,
         MgWriter*         writer )
     {
-        switch( fileGroup->nameGroup->kind )
+        MgScrapKind kind = fileGroup->nameGroup->kind;
+        if(kind == kScrapKind_Unknown)
+        {
+            kind = context->defaultScrapKind;
+        }
+    
+        switch( kind )
         {
         default:
             assert(0);
@@ -3616,7 +3624,6 @@
             ExportScrapNameGroupImpl(context, fileGroup->nameGroup, writer);
             break;
     
-        case kScrapKind_Unknown:
         case kScrapKind_LocalMacro:
             ExportScrapFileGroupImpl(context, fileGroup, writer);
             break;
@@ -3658,7 +3665,7 @@
         MgWriteTextToFile(outputText, nameBuffer);
     }
     
-#line 160 "source/main.md"
+#line 161 "source/main.md"
                                
     
 #line 5 "source/export-html.md"
@@ -4200,7 +4207,7 @@
         free(outputFileName);
     }
     
-#line 161 "source/main.md"
+#line 162 "source/main.md"
                                
     
 #line 5 "source/input.md"
@@ -4551,7 +4558,7 @@
         return inputFile;
     }
     
-#line 162 "source/main.md"
+#line 163 "source/main.md"
                          
     
 #line 6 "source/options.md"
@@ -4564,7 +4571,7 @@
         char const* sourceOutputPath;
         char const* metaDataFilePath;
         MgBool generateHTML;
-        MgBool defaultLocalScoping;
+        MgScrapKind defaultScrapKind;
     } Options;
     
     void InitializeOptions(
@@ -4574,7 +4581,7 @@
         options->docOutputPath      = 0;
         options->sourceOutputPath   = 0;
         options->metaDataFilePath   = 0;
-        options->defaultLocalScoping = MG_FALSE;
+        options->defaultScrapKind = kScrapKind_GlobalMacro;
         options->generateHTML = MG_FALSE;
     }
     
@@ -4628,7 +4635,7 @@
                 }
                 else if( strcmp(option+1, "local-scoping") == 0)
                 {
-                    options->defaultLocalScoping = MG_TRUE;
+                    options->defaultScrapKind = kScrapKind_LocalMacro;
                 }
                 else
                 {
@@ -4657,13 +4664,13 @@
         return 1;
     }
     
-#line 163 "source/main.md"
+#line 164 "source/main.md"
                            
     
-#line 126 "source/main.md"
+#line 127 "source/main.md"
                    
     
-#line 127 "source/main.md"
+#line 128 "source/main.md"
                
     
 #line 7 "source/main.md"
@@ -4695,45 +4702,46 @@
         fprintf(stderr, "no input files\n");
         exit(0);
     }
+    context.defaultScrapKind = options.defaultScrapKind;
     
 #line 12 "source/main.md"
                          
         
-#line 56 "source/main.md"
+#line 57 "source/main.md"
     
-#line 62 "source/main.md"
+#line 63 "source/main.md"
     if( options.metaDataFilePath )
     {
         MgAddMetaDataFile( &context, options.metaDataFilePath );
     }
     
-#line 56 "source/main.md"
+#line 57 "source/main.md"
                                       
     
-#line 71 "source/main.md"
+#line 72 "source/main.md"
     for( int ii = 0; ii < argc; ++ii )
     {
         char const* path = argv[ii];
         
-#line 80 "source/main.md"
+#line 81 "source/main.md"
     if( !MgAddInputFilePath( &context, path ) )
     {
         exit(1);
     }
     
-#line 74 "source/main.md"
+#line 75 "source/main.md"
                                            
     }
     
-#line 57 "source/main.md"
+#line 58 "source/main.md"
                                  
     
 #line 13 "source/main.md"
                        
         
-#line 91 "source/main.md"
+#line 92 "source/main.md"
     
-#line 109 "source/main.md"
+#line 110 "source/main.md"
     for( MgScrapNameGroup* group = context.firstScrapNameGroup; group; group = group->next )
     {
         if( group->kind != kScrapKind_OutputFile )
@@ -4742,16 +4750,16 @@
         MgWriteCodeFile( &context, group );
     }
     
-#line 91 "source/main.md"
+#line 92 "source/main.md"
                                
     
-#line 99 "source/main.md"
+#line 100 "source/main.md"
     for( MgInputFile* file = context.firstInputFile; file; file = file->next )
     {
         MgWriteDocFile( &context, file );
     }
     
-#line 92 "source/main.md"
+#line 93 "source/main.md"
                                         
     
 #line 14 "source/main.md"
@@ -4759,6 +4767,6 @@
         return 0;
     }
     
-#line 128 "source/main.md"
+#line 129 "source/main.md"
                        
     
