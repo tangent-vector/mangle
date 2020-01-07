@@ -1239,6 +1239,10 @@ The Markdown reference says:
             {
                 scrapKind = kScrapKind_LocalMacro;
             }
+            else if( MgStringsAreEqual(scrapKindName, CString("raw")) )
+            {
+                scrapKind = kScrapKind_RawMacro;
+            }
             else
             {
                 fprintf(stderr, "unknown scrap kind: \"");

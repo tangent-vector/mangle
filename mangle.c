@@ -52,9 +52,9 @@
 #line 148 "source/main.md"
                            
     
-#line 486 "source/document.md"
+#line 493 "source/document.md"
     
-#line 475 "source/document.md"
+#line 482 "source/document.md"
     typedef struct MgAttributeT         MgAttribute;
     typedef struct MgContextT           MgContext;
     typedef struct MgElementT           MgElement;
@@ -65,7 +65,7 @@
     typedef struct MgScrapFileGroupT    MgScrapFileGroup;
     typedef struct MgScrapNameGroupT    MgScrapNameGroup;
     
-#line 486 "source/document.md"
+#line 493 "source/document.md"
                                      
     
 #line 13 "source/document.md"
@@ -88,10 +88,10 @@
     MgSourceLoc         sourceLoc;
     MgElement*          body;
     
-#line 118 "source/document.md"
+#line 125 "source/document.md"
     MgScrap*            next;
     
-#line 127 "source/document.md"
+#line 134 "source/document.md"
     MgScrapFileGroup*   fileGroup;
     
 #line 42 "source/document.md"
@@ -114,61 +114,64 @@
 #line 97 "source/document.md"
     kScrapKind_OutputFile,
     
+#line 104 "source/document.md"
+    kScrapKind_RawMacro,
+    
 #line 58 "source/document.md"
                        
     } MgScrapKind;
     
-#line 104 "source/document.md"
+#line 111 "source/document.md"
     struct MgScrapFileGroupT
     {
         
-#line 112 "source/document.md"
+#line 119 "source/document.md"
     MgInputFile*      inputFile;
     
-#line 121 "source/document.md"
+#line 128 "source/document.md"
     MgScrap*          firstScrap;
     MgScrap*          lastScrap;
     
-#line 159 "source/document.md"
+#line 166 "source/document.md"
     MgScrapFileGroup* next;
     
-#line 168 "source/document.md"
+#line 175 "source/document.md"
     MgScrapNameGroup* nameGroup;
     
-#line 106 "source/document.md"
+#line 113 "source/document.md"
                                     
     };
     
-#line 134 "source/document.md"
+#line 141 "source/document.md"
     struct MgScrapNameGroupT
     {
         
-#line 144 "source/document.md"
+#line 151 "source/document.md"
     MgString            id;
     MgElement*          name;
     
-#line 150 "source/document.md"
+#line 157 "source/document.md"
     MgScrapKind         kind;
     
-#line 162 "source/document.md"
+#line 169 "source/document.md"
     MgScrapFileGroup*   firstFileGroup;
     MgScrapFileGroup*   lastFileGroup;
     
-#line 177 "source/document.md"
+#line 184 "source/document.md"
     MgScrapNameGroup*   next;
     
-#line 136 "source/document.md"
+#line 143 "source/document.md"
                                     
     };
     
-#line 185 "source/document.md"
+#line 192 "source/document.md"
     struct MgLineT
     {
         MgString      text;
         char const* originalBegin;
     };
     
-#line 211 "source/document.md"
+#line 218 "source/document.md"
     struct MgInputFileT
     {
         char const*     path;               /* path of input file (terminated) */
@@ -181,7 +184,7 @@
         MgReferenceLink*firstReferenceLink; /* first reference link parsed */
     };
     
-#line 230 "source/document.md"
+#line 237 "source/document.md"
     struct MgContextT
     {
         MgInputFile*        firstInputFile;         /* singly-linked list of input files */
@@ -195,13 +198,13 @@
         MgScrapKind         defaultScrapKind;
     };
     
-#line 252 "source/document.md"
+#line 259 "source/document.md"
     typedef enum MgElementKindT
     {
         
-#line 260 "source/document.md"
+#line 267 "source/document.md"
     
-#line 268 "source/document.md"
+#line 275 "source/document.md"
     kMgElementKind_BlockQuote,          /* `<blockquote>` */
     kMgElementKind_HorizontalRule,      /* `<hr>` */
     kMgElementKind_UnorderedList,       /* `<ul>` */
@@ -213,7 +216,7 @@
     kMgElementKind_TableHeader,         /* `<th>` */
     kMgElementKind_TableCell,           /* `<td>` */
     
-#line 289 "source/document.md"
+#line 296 "source/document.md"
     kMgElementKind_Header1,             /* `<h1>` */
     kMgElementKind_Header2,             /* `<h2>` */
     kMgElementKind_Header3,             /* `<h3>` */
@@ -221,54 +224,54 @@
     kMgElementKind_Header5,             /* `<h5>` */
     kMgElementKind_Header6,             /* `<h6>` */
     
-#line 302 "source/document.md"
+#line 309 "source/document.md"
     kMgElementKind_CodeBlock,           /* `<pre><code>` */
     
-#line 309 "source/document.md"
+#line 316 "source/document.md"
     kMgElementKind_ScrapDef,
     
-#line 325 "source/document.md"
+#line 332 "source/document.md"
     kMgElementKind_MetaData,
     
-#line 333 "source/document.md"
+#line 340 "source/document.md"
     kMgElementKind_HtmlBlock,
     
-#line 260 "source/document.md"
+#line 267 "source/document.md"
                                  
     
-#line 280 "source/document.md"
+#line 287 "source/document.md"
     kMgElementKind_Em,                  /* `<em>` */
     kMgElementKind_Strong,              /* `<strong>` */
     kMgElementKind_InlineCode,          /* `<code>` */
     
-#line 318 "source/document.md"
+#line 325 "source/document.md"
     kMgElementKind_ScrapRef,
     
-#line 347 "source/document.md"
+#line 354 "source/document.md"
     kMgElementKind_LessThanEntity,      /* `&lt;` */
     kMgElementKind_GreaterThanEntity,   /* `&gt;` */
     kMgElementKind_AmpersandEntity,     /* `&amp;` */
     
-#line 357 "source/document.md"
+#line 364 "source/document.md"
     kMgElementKind_NewLine,             /* `"\n"` */
     
-#line 364 "source/document.md"
+#line 371 "source/document.md"
     kMgElementKind_Link,                /* `<a>` with href attribute */
     
-#line 390 "source/document.md"
+#line 397 "source/document.md"
     kMgElementKind_ReferenceLink,
     
-#line 261 "source/document.md"
+#line 268 "source/document.md"
                                 
     
-#line 340 "source/document.md"
+#line 347 "source/document.md"
     kMgElementKind_Text,
     
-#line 254 "source/document.md"
+#line 261 "source/document.md"
                          
     } MgElementKind;
     
-#line 377 "source/document.md"
+#line 384 "source/document.md"
     struct MgReferenceLinkT
     {
         MgString          id;
@@ -277,57 +280,57 @@
         MgReferenceLink*  next;
     };
     
-#line 398 "source/document.md"
+#line 405 "source/document.md"
     struct MgAttributeT
     {
         
-#line 412 "source/document.md"
+#line 419 "source/document.md"
     MgString              id;
     
-#line 417 "source/document.md"
+#line 424 "source/document.md"
     MgAttribute*          next;
     
-#line 400 "source/document.md"
+#line 407 "source/document.md"
                              
         union
         {
             
-#line 422 "source/document.md"
+#line 429 "source/document.md"
     MgString          val;
     
-#line 427 "source/document.md"
+#line 434 "source/document.md"
     MgReferenceLink*  referenceLink;
     MgScrap*          scrap;
     MgScrapFileGroup* scrapFileGroup;
     MgSourceLoc       sourceLoc;
     
-#line 403 "source/document.md"
+#line 410 "source/document.md"
                                        
         };
     };
     
-#line 437 "source/document.md"
+#line 444 "source/document.md"
     struct MgElementT
     {
         
-#line 445 "source/document.md"
+#line 452 "source/document.md"
     MgElementKind   kind;
     
-#line 451 "source/document.md"
+#line 458 "source/document.md"
     MgString        text;
     
-#line 456 "source/document.md"
+#line 463 "source/document.md"
     MgAttribute*    firstAttr;
     
-#line 461 "source/document.md"
+#line 468 "source/document.md"
     MgElement*      firstChild;
     MgElement*      next;
     
-#line 439 "source/document.md"
+#line 446 "source/document.md"
                            
     };
     
-#line 487 "source/document.md"
+#line 494 "source/document.md"
                                   
     
 #line 149 "source/main.md"
@@ -1458,7 +1461,7 @@
 #line 157 "source/main.md"
                                       
     
-#line 2105 "source/parse-block.md"
+#line 2109 "source/parse-block.md"
     
 #line 34 "source/parse-block.md"
     typedef struct LineRangeT
@@ -1472,7 +1475,7 @@
         MgElement* Name( MgContext* context, MgInputFile* inputFile, LineRange* ioLineRange )
     typedef BLOCK_PARSE_FUNC((*BlockParseFunc));
     
-#line 2105 "source/parse-block.md"
+#line 2109 "source/parse-block.md"
                                  
     
 #line 21 "source/parse-block.md"
@@ -1502,11 +1505,11 @@
         char const*     langBegin,
         char const*     langEnd );
     
-#line 2097 "source/parse-block.md"
+#line 2101 "source/parse-block.md"
     char const* CheckIndentedCodeLine(
         MgLine* line );
     
-#line 2106 "source/parse-block.md"
+#line 2110 "source/parse-block.md"
                                         
     
 #line 272 "source/parse-block.md"
@@ -1523,7 +1526,7 @@
         return MG_TRUE;
     }
     
-#line 1913 "source/parse-block.md"
+#line 1917 "source/parse-block.md"
     void SkipEmptyLines(
         LineRange*  ioLineRange )
     {
@@ -1539,7 +1542,7 @@
         }
     }
     
-#line 1931 "source/parse-block.md"
+#line 1935 "source/parse-block.md"
     MgElement* ReadSpansInRange(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -1703,7 +1706,7 @@
         }
     }
     
-#line 2107 "source/parse-block.md"
+#line 2111 "source/parse-block.md"
                                      
     
 #line 46 "source/parse-block.md"
@@ -2580,6 +2583,10 @@
             {
                 scrapKind = kScrapKind_LocalMacro;
             }
+            else if( MgStringsAreEqual(scrapKindName, CString("raw")) )
+            {
+                scrapKind = kScrapKind_RawMacro;
+            }
             else
             {
                 fprintf(stderr, "unknown scrap kind: \"");
@@ -2676,7 +2683,7 @@
         return MG_TRUE;
     }
     
-#line 1360 "source/parse-block.md"
+#line 1364 "source/parse-block.md"
     MgElement* ParseHorizontalRule(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -2742,7 +2749,7 @@
         return ParseHorizontalRule( context, inputFile, ioLineRange, '_' );
     }
     
-#line 1448 "source/parse-block.md"
+#line 1452 "source/parse-block.md"
     MgBool ParseLinkDefinitionTitle(
         MgReader*   reader,
         char const**    outTitleBegin,
@@ -2889,7 +2896,7 @@
             MgMakeString(NULL, NULL));
     }
     
-#line 1601 "source/parse-block.md"
+#line 1605 "source/parse-block.md"
     int CountTableLinePipes(
         MgLine*   line)
     {
@@ -3090,7 +3097,7 @@
             firstRow );
     }
     
-#line 1806 "source/parse-block.md"
+#line 1810 "source/parse-block.md"
     MgElement* ParseMetaData(
         MgContext*      context,
         MgInputFile*    inputFile,
@@ -3194,7 +3201,7 @@
         return firstElement;    
     }
     
-#line 2108 "source/parse-block.md"
+#line 2112 "source/parse-block.md"
                                        
     
 #line 111 "source/parse-block.md"
@@ -3273,7 +3280,7 @@
         }
     }
     
-#line 2109 "source/parse-block.md"
+#line 2113 "source/parse-block.md"
                                     
     
 #line 158 "source/main.md"
@@ -3538,8 +3545,11 @@
             {
                 MgScrapFileGroup* scrapGroup = MgFindAttribute(element, "$scrap-group")->scrapFileGroup;
                 ExportScrapFileGroup(context, scrapGroup, writer);
-                MgSourceLoc resumeLoc = MgFindAttribute(element, "$resume-at")->sourceLoc;
-                EmitLineDirectiveAndIndent(writer, scrap->fileGroup->inputFile, resumeLoc);
+                if(scrapGroup->nameGroup->kind != kScrapKind_RawMacro)
+                {
+                    MgSourceLoc resumeLoc = MgFindAttribute(element, "$resume-at")->sourceLoc;
+                    EmitLineDirectiveAndIndent(writer, scrap->fileGroup->inputFile, resumeLoc);
+                }
             }
             break;
     
@@ -3565,7 +3575,10 @@
         MgScrap*      scrap,
         MgWriter*     writer )
     {
-        EmitLineDirectiveAndIndent(writer, scrap->fileGroup->inputFile, scrap->sourceLoc);
+        if(scrap->fileGroup->nameGroup->kind != kScrapKind_RawMacro)
+        {
+            EmitLineDirectiveAndIndent(writer, scrap->fileGroup->inputFile, scrap->sourceLoc);
+        }
         ExportScrapElements(
             context,
             scrap,
@@ -3620,6 +3633,7 @@
             break;
     
         case kScrapKind_GlobalMacro:
+        case kScrapKind_RawMacro:
         case kScrapKind_OutputFile:
             ExportScrapNameGroupImpl(context, fileGroup->nameGroup, writer);
             break;

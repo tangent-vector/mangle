@@ -113,8 +113,11 @@ Code Export
             {
                 MgScrapFileGroup* scrapGroup = MgFindAttribute(element, "$scrap-group")->scrapFileGroup;
                 ExportScrapFileGroup(context, scrapGroup, writer);
-                MgSourceLoc resumeLoc = MgFindAttribute(element, "$resume-at")->sourceLoc;
-                EmitLineDirectiveAndIndent(writer, scrap->fileGroup->inputFile, resumeLoc);
+                if(scrapGroup->nameGroup->kind != kScrapKind_RawMacro)
+                {
+                    MgSourceLoc resumeLoc = MgFindAttribute(element, "$resume-at")->sourceLoc;
+                    EmitLineDirectiveAndIndent(writer, scrap->fileGroup->inputFile, resumeLoc);
+                }
             }
             break;
 
@@ -140,7 +143,10 @@ Code Export
         MgScrap*      scrap,
         MgWriter*     writer )
     {
-        EmitLineDirectiveAndIndent(writer, scrap->fileGroup->inputFile, scrap->sourceLoc);
+        if(scrap->fileGroup->nameGroup->kind != kScrapKind_RawMacro)
+        {
+            EmitLineDirectiveAndIndent(writer, scrap->fileGroup->inputFile, scrap->sourceLoc);
+        }
         ExportScrapElements(
             context,
             scrap,
@@ -195,6 +201,7 @@ Code Export
             break;
 
         case kScrapKind_GlobalMacro:
+        case kScrapKind_RawMacro:
         case kScrapKind_OutputFile:
             ExportScrapNameGroupImpl(context, fileGroup->nameGroup, writer);
             break;

@@ -96,6 +96,13 @@ A scrap declared with the kind prefix `file:` represents an output code file.
     <<scrap kinds>>+=
     kScrapKind_OutputFile,
 
+#### Raw Macros ####
+
+A scrap declared with the `raw:` prefix works like a `global:` scrap, except that its output doesn't use any `#line` directives.
+
+    <<scrap kinds>>+=
+    kScrapKind_RawMacro,
+
 ### File Groups ###
 
 On a per-source-file basic, we collect together scrap definitions with the same name to make a `ScrapFileGroup`.
